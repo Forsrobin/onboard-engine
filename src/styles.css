@@ -1,0 +1,57 @@
+.onboard-overlay-mask {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+}
+
+.onboard-tooltip {
+  position: absolute;
+  width: 300px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+  padding: 20px;
+  border: 1px solid #f3f4f6;
+  z-index: 10000;
+}
+
+.onboard-button-primary {
+  background-color: black;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.onboard-button-primary:hover {
+  background-color: #1f2937;
+}
+
+.onboard-button-primary:active {
+  transform: scale(0.95);
+}
+
+.onboard-button-ghost {
+  color: #4b5563;
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.onboard-button-ghost:hover {
+  color: #111827;
+}
+
+.onboard-button-ghost:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
