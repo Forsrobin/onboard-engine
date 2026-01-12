@@ -166,7 +166,7 @@ const config: OnboardingConfig = {
 | `title` | `string` | Title displayed in the tooltip. |
 | `description` | `string` | Description text in the tooltip. |
 | `attribute` | `string` | The `data-onboarding-id` value to target. |
-| `urlMatch` | `string` \| `RegExp` | **Required**. Checks if current URL matches to active this step. |
+| `urlMatch` | `string` \| `RegExp` | **Required**. Checks if current URL matches to active this step. Supports `*` wildcards in strings (e.g., `"/user/*"`). <br/>**Note:** `RegExp` objects cannot be passed from Server Components in Next.js. Use string wildcards or define config in a Client Component. |
 | `navigate` | `string` | URL to navigate to when this step is completed (next button clicked). |
 | `click` | `boolean` | If `true`, clicks the element when the step activates. |
 | `subSteps` | `OnboardingSubStep[]` | Nested steps for complex workflows. |

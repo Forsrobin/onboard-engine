@@ -57,6 +57,15 @@ export const OnboardingProvider: React.FC<{
 
   const isMatch = (step: OnboardingStep, path: string) => {
     if (step.urlMatch instanceof RegExp) return step.urlMatch.test(path);
+    
+    if (typeof step.urlMatch === 'string' && step.urlMatch.includes('*')) {
+      // Escape regex special characters but keep '*' as '.*'
+      const pattern = step.urlMatch
+        .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape regex chars
+        .replace(/\*/g, '.*');                 // Convert * to .*
+      return new RegExp(`^${pattern}$`).test(path);
+    }
+
     return path === step.urlMatch;
   };
 
@@ -66,7 +75,7 @@ export const OnboardingProvider: React.FC<{
     let matchedStepIndex = -1;
     
     // Check if inOrder is explicitly false to find matching step from URL
-    if (currentConfig.metadata.inOrder === false) {
+    if ((currentConfig.metadata.inOrder as boolean | undefined) === false) {
       matchedStepIndex = currentConfig.steps.findIndex(step => isMatch(step, currentPath));
     }
 
@@ -75,26 +84,33 @@ export const OnboardingProvider: React.FC<{
       try {
         const parsed: OnboardingState = JSON.parse(savedState);
         
-        // If inOrder is false and we found a matching step
-        if (currentConfig.metadata.inOrder === false && matchedStepIndex !== -1) {
-          // If the matching step is the same as the saved step, restore the full state (including substeps)
-          if (parsed.currentStepIndex === matchedStepIndex) {
-            setState(parsed);
+        // If inOrder is false
+        if ((currentConfig.metadata.inOrder as boolean | undefined) === false) {
+          if (matchedStepIndex !== -1) {
+            // We found a matching step for this URL
+            if (parsed.currentStepIndex === matchedStepIndex) {
+              // If it matches the saved step, restore state (keep substeps)
+              setState(parsed);
+            } else {
+              // Different step, switch to it
+              setState(prev => ({
+                ...prev,
+                currentStepIndex: matchedStepIndex,
+                currentSubStepIndex: null,
+                isActive: true
+              }));
+            }
           } else {
-            // Otherwise, jump to the matching step (resetting substeps)
-            setState(prev => ({
-              ...prev,
-              currentStepIndex: matchedStepIndex,
-              currentSubStepIndex: null,
-              isActive: true
-            }));
+            // inOrder is false, and NO step matches this URL.
+            // We should hide the onboarding, essentially "pausing" it until we return to a valid page.
+            setState(prev => ({ ...parsed, isActive: false }));
           }
         } else {
           // Standard behavior (inOrder: true OR no match found) - restore saved state
           setState(parsed);
 
           // Only enforce navigation if inOrder is true (or default)
-          if (currentConfig.metadata.inOrder !== false) {
+          if ((currentConfig.metadata.inOrder as boolean | undefined) !== false) {
             const step = currentConfig.steps[parsed.currentStepIndex];
             if (step && parsed.isActive) {
               // Always enforce location based on the main step's urlMatch
@@ -124,9 +140,13 @@ export const OnboardingProvider: React.FC<{
         currentSubStepIndex: null,
         isActive: true
       }));
-    } else if (currentConfig.metadata.inOrder !== false) {
+    } else if ((currentConfig.metadata.inOrder as boolean | undefined) === false) {
+      // No cookie, no match, and inOrder is false.
+      // We are on a page that doesn't trigger any onboarding step.
+      setState(prev => ({ ...prev, isActive: false }));
+    } else {
       // No cookie, no match, inOrder is true (default).
-      // Check if we need to be at the start location
+      // Enforce navigation for the default first step if needed.
       const step = currentConfig.steps[0];
       if (step && typeof step.urlMatch === 'string' && window.location.pathname !== step.urlMatch) {
          handleNavigation(step.urlMatch);

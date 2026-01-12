@@ -144,4 +144,31 @@ describe('OnboardingProvider', () => {
     expect(screen.getByText('Step 2')).toBeDefined();
     expect(screen.getByText('Desc 2')).toBeDefined();
   });
+
+  it('activates the matching step based on wildcard string when inOrder is false', () => {
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/user/123' },
+      writable: true,
+    });
+
+    const wildcardConfig: OnboardingConfig = {
+      metadata: { name: 'Wildcard Test', inOrder: false },
+      steps: [
+        {
+          title: 'User Profile',
+          description: 'User details',
+          attribute: 'user-profile',
+          urlMatch: '/user/*',
+        },
+      ],
+    };
+
+    render(
+      <OnboardingProvider config={wildcardConfig}>
+        <div data-onboarding-id="user-profile">User Profile Element</div>
+      </OnboardingProvider>
+    );
+
+    expect(screen.getByText('User Profile')).toBeDefined();
+  });
 });
