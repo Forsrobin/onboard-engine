@@ -6,31 +6,29 @@
 
 **A modern, lightweight, and customizable onboarding library for React and Next.js applications.**
 
-`onboard-engine` provides a seamless way to guide users through your application using an animated focus overlay, tooltips, and persistent state management. Built with **Framer Motion** for smooth transitions and **Cookies** for state persistence.
+`onboard-engine` provides a seamless way to guide users through your application using an animated focus overlay, tooltips, and persistent state management. Built with smooth CSS transitions and **Cookies** for state persistence.
 
 ![License](https://img.shields.io/npm/l/onboard-engine)
 ![Version](https://img.shields.io/npm/v/onboard-engine)
 
 ## Features
 
-- 🔦 **Smart Focus Overlay:** Dim the background and highlight the target element.
-- 🧩 **Deeply Customizable:** Custom renderers for buttons and styling options for the overlay.
-- 💾 **State Persistence:** Remembers the user's progress across page reloads using cookies.
-- 🔄 **Automatic Navigation:** Seamlessly transitions between steps on different pages.
-- 🖱️ **Interactive:** Supports click automation and draggable tooltips.
-- ⚡ **SSR Compatible:** Built with Server-Side Rendering (Next.js) in mind.
+- **Smart Focus Overlay:** Dim the background and highlight the target element.
+- **Deeply Customizable:** Custom renderers for buttons and styling options for the overlay.
+- **State Persistence:** Remembers the user's progress across page reloads using cookies.
+- **Automatic Navigation:** Seamlessly transitions between steps on different pages.
+- **Interactive:** Supports click automation and draggable tooltips.
+- **SSR Compatible:** Built with Server-Side Rendering (Next.js) in mind.
 
 ## Installation
 
 ```bash
-npm install onboard-engine framer-motion lucide-react
+npm install onboard-engine
 # or
-yarn add onboard-engine framer-motion lucide-react
+yarn add onboard-engine
 # or
-pnpm add onboard-engine framer-motion lucide-react
+pnpm add onboard-engine
 ```
-
-> **Note:** `framer-motion` and `lucide-react` are peer dependencies and must be installed alongside `onboard-engine`.
 
 ## Getting Started
 
@@ -53,18 +51,21 @@ const onboardingConfig: OnboardingConfig = {
   metadata: {
     name: 'user-onboarding',
     draggable: true, // Allow users to drag the tooltip
+    inOrder: true, // Default true. If false, steps can be activated out of order based on URL match.
   },
   steps: [
     {
       title: 'Welcome!',
       description: 'Let us show you around the dashboard.',
       attribute: 'welcome-header',
+      urlMatch: '/',
     },
     {
       title: 'Create Project',
       description: 'Click here to start a new project.',
       attribute: 'create-btn',
-      link: '/dashboard', // Navigate to this page if not already there
+      navigate: '/dashboard', // Navigate to this page when clicking next
+      urlMatch: '/home', // This step is active when on /home
       subSteps: [
         {
           title: 'Project Name',
@@ -74,6 +75,9 @@ const onboardingConfig: OnboardingConfig = {
       ],
     },
   ],
+  onOnboardingComplete: () => {
+    console.log('Onboarding finished!');
+  }
 };
 ```
 
@@ -144,6 +148,7 @@ const config: OnboardingConfig = {
 | `metadata` | `OnboardingMetadata` | General settings for the onboarding instance. |
 | `steps` | `OnboardingStep[]` | Array of steps defining the flow. |
 | `style` | `OnboardingStyle` | Optional. Visual styling configuration. |
+| `onOnboardingComplete` | `() => void` | Optional. Callback fired when onboarding finishes. |
 
 ### `OnboardingMetadata`
 
@@ -152,6 +157,7 @@ const config: OnboardingConfig = {
 | `name` | `string` | **Required** | Unique name for the onboarding flow. |
 | `nextRouter` | `boolean` | `false` | Enable if using Next.js router. |
 | `draggable` | `boolean` | `false` | Allow the tooltip to be dragged. |
+| `inOrder` | `boolean` | `true` | If `true`, strict step order is enforced. If `false`, matching `urlMatch` activates the step. |
 
 ### `OnboardingStep`
 
@@ -160,9 +166,9 @@ const config: OnboardingConfig = {
 | `title` | `string` | Title displayed in the tooltip. |
 | `description` | `string` | Description text in the tooltip. |
 | `attribute` | `string` | The `data-onboarding-id` value to target. |
-| `link` | `string` | URL to navigate to for this step. |
+| `urlMatch` | `string` \| `RegExp` | **Required**. Checks if current URL matches to active this step. |
+| `navigate` | `string` | URL to navigate to when this step is completed (next button clicked). |
 | `click` | `boolean` | If `true`, clicks the element when the step activates. |
-| `navigateAutomatically` | `boolean` | Default `true`. Controls auto-navigation. |
 | `subSteps` | `OnboardingSubStep[]` | Nested steps for complex workflows. |
 
 ### `OnboardingStyle`

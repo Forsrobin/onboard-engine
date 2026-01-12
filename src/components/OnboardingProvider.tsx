@@ -33,15 +33,21 @@ export const OnboardingProvider: React.FC<{
     isActive: true,
   });
 
+  // Stabilize config to prevent infinite loops if the user passes a new object on every render
+  const configRef = React.useRef(config);
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
   const handleNavigation = useCallback((link?: string) => {
     if (!link) return;
     
-    if (config.metadata.nextRouter) {
+    if (configRef.current.metadata.nextRouter) {
       window.location.href = link;
     } else {
       window.location.href = link;
     }
-  }, [config.metadata.nextRouter]);
+  }, []);
 
   useEffect(() => {
     if (ssr) {
@@ -49,28 +55,84 @@ export const OnboardingProvider: React.FC<{
     }
   }, [ssr]);
 
+  const isMatch = (step: OnboardingStep, path: string) => {
+    if (step.urlMatch instanceof RegExp) return step.urlMatch.test(path);
+    return path === step.urlMatch;
+  };
+
   useEffect(() => {
+    const currentConfig = configRef.current;
+    const currentPath = window.location.pathname;
+    let matchedStepIndex = -1;
+    
+    // Check if inOrder is explicitly false to find matching step from URL
+    if (currentConfig.metadata.inOrder === false) {
+      matchedStepIndex = currentConfig.steps.findIndex(step => isMatch(step, currentPath));
+    }
+
     const savedState = Cookies.get(COOKIE_NAME);
     if (savedState) {
       try {
         const parsed: OnboardingState = JSON.parse(savedState);
-        setState(parsed);
+        
+        // If inOrder is false and we found a matching step
+        if (currentConfig.metadata.inOrder === false && matchedStepIndex !== -1) {
+          // If the matching step is the same as the saved step, restore the full state (including substeps)
+          if (parsed.currentStepIndex === matchedStepIndex) {
+            setState(parsed);
+          } else {
+            // Otherwise, jump to the matching step (resetting substeps)
+            setState(prev => ({
+              ...prev,
+              currentStepIndex: matchedStepIndex,
+              currentSubStepIndex: null,
+              isActive: true
+            }));
+          }
+        } else {
+          // Standard behavior (inOrder: true OR no match found) - restore saved state
+          setState(parsed);
 
-        const step = config.steps[parsed.currentStepIndex];
-        if (step && parsed.isActive) {
-          const targetLink = parsed.currentSubStepIndex !== null && step.subSteps 
-            ? step.subSteps[parsed.currentSubStepIndex].link 
-            : step.link;
-
-          if (targetLink && window.location.pathname !== targetLink) {
-            handleNavigation(targetLink);
+          // Only enforce navigation if inOrder is true (or default)
+          if (currentConfig.metadata.inOrder !== false) {
+            const step = currentConfig.steps[parsed.currentStepIndex];
+            if (step && parsed.isActive) {
+              // Always enforce location based on the main step's urlMatch
+              if (typeof step.urlMatch === 'string' && window.location.pathname !== step.urlMatch) {
+                handleNavigation(step.urlMatch);
+              }
+            }
           }
         }
       } catch (e) {
         console.error('Failed to parse onboarding state from cookie', e);
+        // Fallback if cookie fails but we have a match
+        if (matchedStepIndex !== -1) {
+          setState(prev => ({
+            ...prev,
+            currentStepIndex: matchedStepIndex,
+            currentSubStepIndex: null,
+            isActive: true
+          }));
+        }
+      }
+    } else if (matchedStepIndex !== -1) {
+      // No cookie, but we have a URL match
+      setState(prev => ({
+        ...prev,
+        currentStepIndex: matchedStepIndex,
+        currentSubStepIndex: null,
+        isActive: true
+      }));
+    } else if (currentConfig.metadata.inOrder !== false) {
+      // No cookie, no match, inOrder is true (default).
+      // Check if we need to be at the start location
+      const step = currentConfig.steps[0];
+      if (step && typeof step.urlMatch === 'string' && window.location.pathname !== step.urlMatch) {
+         handleNavigation(step.urlMatch);
       }
     }
-  }, [config.steps, handleNavigation]);
+  }, [handleNavigation]); // Removed config.steps dependency
 
   useEffect(() => {
     if (isMounted) {
@@ -104,7 +166,8 @@ export const OnboardingProvider: React.FC<{
   }, [config.steps, state.currentStepIndex, state.currentSubStepIndex]);
 
   const nextStep = useCallback(() => {
-    const step = config.steps[state.currentStepIndex];
+    const currentConfig = configRef.current;
+    const step = currentConfig.steps[state.currentStepIndex];
     const currentActiveStep = state.currentSubStepIndex !== null && step.subSteps 
       ? step.subSteps[state.currentSubStepIndex] 
       : step;
@@ -123,30 +186,32 @@ export const OnboardingProvider: React.FC<{
       const nextSubStep = step.subSteps[nextSubIndex];
       setState(prev => ({ ...prev, currentSubStepIndex: nextSubIndex }));
       
-      const shouldNavigate = currentActiveStep.navigateAutomatically !== false;
-      if (nextSubStep.link && shouldNavigate) handleNavigation(nextSubStep.link);
+      if (nextSubStep.navigate) handleNavigation(nextSubStep.navigate);
       return;
     }
 
     // Move to next main step
-    if (state.currentStepIndex < config.steps.length - 1) {
+    if (state.currentStepIndex < currentConfig.steps.length - 1) {
       const nextIndex = state.currentStepIndex + 1;
-      const nextStepObj = config.steps[nextIndex];
+      const nextStepObj = currentConfig.steps[nextIndex];
       setState({
         currentStepIndex: nextIndex,
         currentSubStepIndex: null,
         isActive: true,
       });
       
-      const shouldNavigate = currentActiveStep.navigateAutomatically !== false;
-      if (nextStepObj.link && shouldNavigate) handleNavigation(nextStepObj.link);
+      if (nextStepObj.navigate) handleNavigation(nextStepObj.navigate);
     } else {
       setState(prev => ({ ...prev, isActive: false }));
+      if (currentConfig.onOnboardingComplete) {
+        currentConfig.onOnboardingComplete();
+      }
     }
-  }, [config.steps, state.currentStepIndex, state.currentSubStepIndex, handleNavigation]);
+  }, [state.currentStepIndex, state.currentSubStepIndex, handleNavigation]);
 
   const prevStep = useCallback(() => {
-    const step = config.steps[state.currentStepIndex];
+    const currentConfig = configRef.current;
+    const step = currentConfig.steps[state.currentStepIndex];
 
     if (state.currentSubStepIndex !== null && state.currentSubStepIndex > 0) {
       setState(prev => ({ ...prev, currentSubStepIndex: prev.currentSubStepIndex! - 1 }));
@@ -160,7 +225,7 @@ export const OnboardingProvider: React.FC<{
 
     if (state.currentStepIndex > 0) {
       const prevIndex = state.currentStepIndex - 1;
-      const prevStepObj = config.steps[prevIndex];
+      const prevStepObj = currentConfig.steps[prevIndex];
       const prevSubStepIndex = prevStepObj.subSteps ? prevStepObj.subSteps.length - 1 : null;
       
       setState({
@@ -169,10 +234,13 @@ export const OnboardingProvider: React.FC<{
         isActive: true,
       });
     }
-  }, [config.steps, state.currentStepIndex, state.currentSubStepIndex]);
+  }, [state.currentStepIndex, state.currentSubStepIndex]);
 
   const finish = useCallback(() => {
     setState(prev => ({ ...prev, isActive: false }));
+    if (configRef.current.onOnboardingComplete) {
+      configRef.current.onOnboardingComplete();
+    }
   }, []);
 
   const goToStep = useCallback((stepIndex: number, subStepIndex: number | null = null) => {

@@ -2,15 +2,68 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
 import { useOnboarding } from './OnboardingProvider';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 export const OnboardingOverlay: React.FC = () => {
   const { config, currentStep, nextStep, prevStep, finish, isFirstStep, isLastStep } = useOnboarding();
   const [coords, setCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Reset drag offset when step changes
+  useEffect(() => {
+    setDragOffset({ x: 0, y: 0 });
+  }, [currentStep]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!config.metadata.draggable) return;
+    e.stopPropagation(); // Prevent click-through
+    e.preventDefault(); // Prevent text selection
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y };
+    
+    // Disable transition during drag for responsiveness
+    if (tooltipRef.current) {
+      tooltipRef.current.style.transition = 'none';
+      tooltipRef.current.style.cursor = 'grabbing';
+    }
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  const handlePointerMove = useCallback((e: PointerEvent) => {
+    if (!isDragging.current) return;
+    
+    const newX = e.clientX - dragStart.current.x;
+    const newY = e.clientY - dragStart.current.y;
+    
+    setDragOffset({ x: newX, y: newY });
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    isDragging.current = false;
+    
+    // Re-enable transition
+    if (tooltipRef.current) {
+      tooltipRef.current.style.transition = 'top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)';
+      tooltipRef.current.style.cursor = config.metadata.draggable ? 'grab' : 'auto';
+    }
+
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+  }, [config.metadata.draggable, handlePointerMove]);
+
+  // Clean up listeners on unmount
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [handlePointerMove, handlePointerUp]);
 
   const calculateBestPosition = useCallback((rect: { top: number; bottom: number; left: number; right: number; width: number; height: number }) => {
     const tooltipWidth = 300;
@@ -63,13 +116,33 @@ export const OnboardingOverlay: React.FC = () => {
         height: rect.height + (padding * 2),
       };
 
-      setCoords({
+      const newCoords = {
         top: paddedRect.top + window.scrollY,
         left: paddedRect.left + window.scrollX,
         width: paddedRect.width,
         height: paddedRect.height,
+      };
+
+      const newPosition = calculateBestPosition(paddedRect);
+
+      // Prevent infinite loops by only updating if values actually changed
+      setCoords(prev => {
+        if (prev && 
+            prev.top === newCoords.top && 
+            prev.left === newCoords.left && 
+            prev.width === newCoords.width && 
+            prev.height === newCoords.height) {
+          return prev;
+        }
+        return newCoords;
       });
-      setPosition(calculateBestPosition(paddedRect));
+
+      setPosition(prev => {
+        if (prev.top === newPosition.top && prev.left === newPosition.left) {
+          return prev;
+        }
+        return newPosition;
+      });
     } else {
       setCoords(null);
     }
@@ -81,70 +154,94 @@ export const OnboardingOverlay: React.FC = () => {
     window.addEventListener('scroll', updateCoords);
 
     const observer = new MutationObserver(updateCoords);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(updateCoords);
+      resizeObserver.observe(document.body);
+      
+      const element = currentStep?.attribute 
+        ? document.querySelector(`[data-onboarding-id="${currentStep.attribute}"]`) 
+        : null;
+      if (element) {
+        resizeObserver.observe(element);
+      }
+    }
 
     return () => {
       window.removeEventListener('resize', updateCoords);
       window.removeEventListener('scroll', updateCoords);
       observer.disconnect();
+      if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [updateCoords]);
+  }, [updateCoords, currentStep?.attribute]);
 
   if (!currentStep || !coords) return null;
 
-  const transition = { type: 'spring' as const, damping: 25, stiffness: 200 };
-  const maskStyle = config.style?.background;
+  const maskStyle = {
+    ...config.style?.background,
+    transition: 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+  };
 
   const stopPropagation = (e: React.PointerEvent | React.MouseEvent) => {
     e.stopPropagation();
   };
 
+  const ChevronLeftIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+
+  const ChevronRightIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  );
+
+  const XIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+
   const overlayContent = (
     <div className="fixed inset-0 z-[999999] pointer-events-none">
       {/* Top Mask */}
-      <motion.div
-        initial={false}
-        animate={{ height: coords.top }}
-        transition={transition}
-        style={maskStyle}
+      <div
+        style={{ height: coords.top, ...maskStyle }}
         className="onboard-overlay-mask top-0 left-0 w-full pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       />
       {/* Bottom Mask */}
-      <motion.div
-        initial={false}
-        animate={{ top: coords.top + coords.height, height: `calc(100vh - ${coords.top + coords.height}px)` }}
-        transition={transition}
-        style={maskStyle}
+      <div
+        style={{ top: coords.top + coords.height, height: `calc(100vh - ${coords.top + coords.height}px)`, ...maskStyle }}
         className="onboard-overlay-mask left-0 w-full pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       />
       {/* Left Mask */}
-      <motion.div
-        initial={false}
-        animate={{ top: coords.top, height: coords.height, width: coords.left }}
-        transition={transition}
-        style={maskStyle}
+      <div
+        style={{ top: coords.top, height: coords.height, width: coords.left, ...maskStyle }}
         className="onboard-overlay-mask left-0 pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       />
       {/* Right Mask */}
-      <motion.div
-        initial={false}
-        animate={{ 
+      <div
+        style={{ 
           top: coords.top, 
           height: coords.height, 
           left: coords.left + coords.width, 
-          width: `calc(100% - ${coords.left + coords.width}px)` 
+          width: `calc(100% - ${coords.left + coords.width}px)`, 
+          ...maskStyle 
         }}
-        transition={transition}
-        style={maskStyle}
         className="onboard-overlay-mask pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
@@ -152,22 +249,19 @@ export const OnboardingOverlay: React.FC = () => {
       />
 
       {/* Tooltip */}
-      <motion.div
+      <div
         ref={tooltipRef}
-        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-        animate={{ 
-          opacity: 1, 
-          scale: 1, 
-          y: 0,
-          top: position.top,
-          left: position.left
-        }}
-        drag={config.metadata.draggable}
-        dragMomentum={false}
-        transition={transition}
         className="onboard-tooltip pointer-events-auto"
-        style={{ zIndex: 1000000, ...config.style?.container }}
-        onPointerDown={stopPropagation}
+        onPointerDown={handlePointerDown}
+        style={{ 
+          zIndex: 1000000, 
+          ...config.style?.container,
+          top: position.top + dragOffset.y,
+          left: position.left + dragOffset.x,
+          transition: 'top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          cursor: config.metadata.draggable ? 'grab' : 'auto',
+          touchAction: 'none' // Prevent scrolling on touch devices while dragging
+        }}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
@@ -177,7 +271,7 @@ export const OnboardingOverlay: React.FC = () => {
             onClick={(e) => { e.stopPropagation(); finish(); }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af' }}
           >
-            <X size={18} />
+            <XIcon />
           </button>
         </div>
         <p style={{ margin: 0, color: '#4b5563', fontSize: '14px', marginBottom: '24px', lineHeight: 1.5 }}>
@@ -196,7 +290,7 @@ export const OnboardingOverlay: React.FC = () => {
               ...config.style?.prev 
             }}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeftIcon />
             Prev
           </button>
           
@@ -220,11 +314,11 @@ export const OnboardingOverlay: React.FC = () => {
               }}
             >
               {isFirstStep && config.style?.start ? 'Start' : 'Next'}
-              {!(isFirstStep && config.style?.start) && <ChevronRight size={16} />}
+              {!(isFirstStep && config.style?.start) && <ChevronRightIcon />}
             </button>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 

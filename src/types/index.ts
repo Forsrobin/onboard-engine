@@ -4,25 +4,25 @@ export interface OnboardingSubStep {
   title: string;
   description: string;
   attribute: string;
-  link?: string;
+  navigate?: string;
   click?: boolean;
-  navigateAutomatically?: boolean;
 }
 
 export interface OnboardingStep {
   title: string;
   description: string;
   attribute: string;
-  link?: string;
+  urlMatch: string | RegExp;
+  navigate?: string;
   subSteps?: OnboardingSubStep[];
   click?: boolean;
-  navigateAutomatically?: boolean;
 }
 
 export interface OnboardingMetadata {
   name: string;
   nextRouter?: boolean;
   draggable?: boolean;
+  inOrder?: boolean;
 }
 
 export interface OnboardingStyle {
@@ -39,6 +39,7 @@ export interface OnboardingConfig {
   metadata: OnboardingMetadata;
   steps: OnboardingStep[];
   style?: OnboardingStyle;
+  onOnboardingComplete?: () => void;
 }
 
 export interface OnboardingState {
