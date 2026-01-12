@@ -1,172 +1,214 @@
-# onboard-engine
+<p align="center">
+  <img src="logo.png" alt="Onboard Engine Logo" width="200" />
+</p>
 
-A modern, animated, and persistent onboarding tool for React and Next.js applications. It uses Framer Motion for smooth transitions and cookies to maintain state across sessions and page refreshes.
+# Onboard Engine
 
-## Installation
+**A modern, lightweight, and customizable onboarding library for React and Next.js applications.**
 
-Install the package via npm:
+`onboard-engine` provides a seamless way to guide users through your application using an animated focus overlay, tooltips, and persistent state management. Built with **Framer Motion** for smooth transitions and **Cookies** for state persistence.
 
-```bash
-npm install onboard-engine
-```
+![License](https://img.shields.io/npm/l/onboard-engine)
+![Version](https://img.shields.io/npm/v/onboard-engine)
 
 ## Features
 
-- Server-side support for Next.js and React.
-- Animated focus effect using a four-panel overlay system.
-- Cookie-based persistence to keep the user's progress.
-- Support for nested sub-steps and dynamic navigation.
-- Customizable configuration for titles, descriptions, and attributes.
+- 🔦 **Smart Focus Overlay:** Dim the background and highlight the target element.
+- 🧩 **Deeply Customizable:** Custom renderers for buttons and styling options for the overlay.
+- 💾 **State Persistence:** Remembers the user's progress across page reloads using cookies.
+- 🔄 **Automatic Navigation:** Seamlessly transitions between steps on different pages.
+- 🖱️ **Interactive:** Supports click automation and draggable tooltips.
+- ⚡ **SSR Compatible:** Built with Server-Side Rendering (Next.js) in mind.
 
-## Basic Usage
+## Installation
 
-### 1. Style Import
+```bash
+npm install onboard-engine framer-motion lucide-react
+# or
+yarn add onboard-engine framer-motion lucide-react
+# or
+pnpm add onboard-engine framer-motion lucide-react
+```
 
-Import the required CSS in your root file (e.g., layout.tsx or _app.tsx):
+> **Note:** `framer-motion` and `lucide-react` are peer dependencies and must be installed alongside `onboard-engine`.
+
+## Getting Started
+
+### 1. Import Styles
+
+Import the necessary CSS in your global stylesheet or root component (e.g., `_app.tsx` or `layout.tsx`).
 
 ```tsx
 import 'onboard-engine/dist/index.css';
 ```
 
-### 2. Provider Setup
+### 2. Define Configuration
 
-Wrap your application with the OnboardingProvider.
+Create your onboarding configuration object. This defines the steps, metadata, and optional styling.
 
 ```tsx
-import { OnboardingProvider, OnboardingConfig } from 'onboard-engine';
+import { OnboardingConfig } from 'onboard-engine';
 
 const onboardingConfig: OnboardingConfig = {
   metadata: {
-    name: 'My Application Onboarding',
-    nextRouter: true
+    name: 'user-onboarding',
+    draggable: true, // Allow users to drag the tooltip
   },
   steps: [
     {
-      title: 'Welcome to the Dashboard',
-      description: 'This is where you can see all your recent activities.',
-      attribute: 'dashboard-header',
-      link: '/dashboard'
+      title: 'Welcome!',
+      description: 'Let us show you around the dashboard.',
+      attribute: 'welcome-header',
     },
     {
-      title: 'Create a Project',
-      description: 'Click here to start your first project.',
-      attribute: 'create-project-btn',
-      link: '/dashboard',
+      title: 'Create Project',
+      description: 'Click here to start a new project.',
+      attribute: 'create-btn',
+      link: '/dashboard', // Navigate to this page if not already there
       subSteps: [
         {
           title: 'Project Name',
-          description: 'Give your project a unique name.',
-          attribute: 'project-name-input'
-        }
-      ]
-    }
-  ]
+          description: 'Enter a unique name for your project.',
+          attribute: 'project-name-input',
+        },
+      ],
+    },
+  ],
 };
+```
 
-export default function RootLayout({ children }) {
+### 3. Wrap Your Application
+
+Wrap your application (or the part you want to onboard) with the `OnboardingProvider`.
+
+```tsx
+import { OnboardingProvider } from 'onboard-engine';
+
+export default function App({ children }) {
   return (
-    <OnboardingProvider config={onboardingConfig} ssr={true}>
+    <OnboardingProvider config={onboardingConfig}>
       {children}
     </OnboardingProvider>
   );
 }
 ```
 
-### 3. Tagging Elements
+### 4. Tag Your Elements
 
-Add the data-onboarding-id attribute to the HTML elements you want to highlight.
+Add the `data-onboarding-id` attribute to the elements you want to highlight. This must match the `attribute` defined in your config steps.
 
 ```tsx
-<button data-onboarding-id="create-project-btn">
-  Create Project
-</button>
+<h1 data-onboarding-id="welcome-header">Welcome to My App</h1>
+<button data-onboarding-id="create-btn">Create Project</button>
+<input data-onboarding-id="project-name-input" type="text" />
 ```
 
-## Configuration Reference
+## Advanced Configuration
 
-### OnboardingConfig
+### Custom Styling
+
+You can customize the appearance of the overlay and tooltip through the `style` property in the config. This accepts standard React CSS properties for each element.
+
+```tsx
+const config: OnboardingConfig = {
+  // ...
+  style: {
+    // The mask overlaying the page
+    background: { backgroundColor: 'rgba(0, 0, 0, 0.85)' },
+    
+    // The main tooltip container
+    container: { 
+      borderRadius: '16px', 
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' 
+    },
+    
+    // Buttons
+    next: { backgroundColor: '#4F46E5', color: 'white' },
+    prev: { color: '#6B7280' },
+    finish: { backgroundColor: '#10B981' },
+    start: { backgroundColor: '#4F46E5' }, // Used for the "Next" button on the first step
+
+    // Layout
+    padding: 10, // Add 10px padding around the highlighted element
+  },
+  // ...
+};
+```
+
+## API Reference
+
+### `OnboardingConfig`
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| metadata | OnboardingMetadata | General settings for the onboarding instance. |
-| steps | OnboardingStep[] | An array of steps defining the onboarding flow. |
+| `metadata` | `OnboardingMetadata` | General settings for the onboarding instance. |
+| `steps` | `OnboardingStep[]` | Array of steps defining the flow. |
+| `style` | `OnboardingStyle` | Optional. Visual styling configuration. |
 
-### OnboardingMetadata
+### `OnboardingMetadata`
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| name | string | Required | The name of the onboarding flow. |
-| nextRouter | boolean | false | If true, the engine prepares for Next.js router transitions. |
-| draggable | boolean | false | If true, allows users to drag the tooltip around the screen. |
+| `name` | `string` | **Required** | Unique name for the onboarding flow. |
+| `nextRouter` | `boolean` | `false` | Enable if using Next.js router. |
+| `draggable` | `boolean` | `false` | Allow the tooltip to be dragged. |
 
-### OnboardingStep
-
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| title | string | The title displayed in the tooltip. |
-| description | string | The description text displayed in the tooltip. |
-| attribute | string | The value of the data-onboarding-id attribute to target. |
-| link | string (optional) | The URL path to navigate to when this step is reached. |
-| click | boolean (optional) | If true, the engine will programmatically click the element when the step starts. |
-| navigateAutomatically | boolean (optional) | Default true. If false, the engine won't perform URL navigation when moving to the next step. |
-| subSteps | OnboardingSubStep[] (optional) | Nested steps that occur on the same page or within a workflow. |
-
-### OnboardingSubStep
-
-Sub-steps share the same properties as main steps but are focused on handling nested UI elements like modals or multi-step forms.
+### `OnboardingStep`
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| title | string | Title for the sub-step. |
-| description | string | Description for the sub-step. |
-| attribute | string | The attribute ID of the element to focus (using data-onboarding-id). |
-| link | string (optional) | Optional navigation link. |
-| click | boolean (optional) | If true, programmatically clicks the element when the sub-step starts. |
-| navigateAutomatically | boolean (optional) | Default true. If false, prevents automatic URL navigation. |
+| `title` | `string` | Title displayed in the tooltip. |
+| `description` | `string` | Description text in the tooltip. |
+| `attribute` | `string` | The `data-onboarding-id` value to target. |
+| `link` | `string` | URL to navigate to for this step. |
+| `click` | `boolean` | If `true`, clicks the element when the step activates. |
+| `navigateAutomatically` | `boolean` | Default `true`. Controls auto-navigation. |
+| `subSteps` | `OnboardingSubStep[]` | Nested steps for complex workflows. |
 
-## Smart Positioning
+### `OnboardingStyle`
 
-The engine automatically calculates the best position for the tooltip relative to the focused element. It checks for available space in the following order:
-1. Below the element.
-2. Above the element.
-3. To the right of the element.
-4. To the left of the element.
-5. Centered on the screen (fallback).
+All properties (except `padding`) accept `React.CSSProperties` objects.
 
-This ensures the onboarding instructions are always visible regardless of where the target element is located on the page.
-
-## Provider Properties
-
-| Property | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| config | OnboardingConfig | Required | The configuration object for the onboarding. |
-| ssr | boolean | false | Set to true when using with Next.js to handle hydration properly. |
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `background` | `CSSProperties` | Styles for the overlay mask. |
+| `container` | `CSSProperties` | Styles for the tooltip box. |
+| `next` | `CSSProperties` | Styles for the "Next" button. |
+| `prev` | `CSSProperties` | Styles for the "Prev" button. |
+| `finish` | `CSSProperties` | Styles for the "Finish" button. |
+| `start` | `CSSProperties` | Styles for the "Start" button (Step 1 "Next" button). |
+| `padding` | `number` | Padding (in px) around the highlighted element. |
 
 ## Hooks
 
-### useOnboarding
+### `useOnboarding()`
 
 Access the onboarding state and controls from any component within the provider.
 
 ```tsx
-const { 
-  nextStep, 
-  prevStep, 
-  finish, 
-  state, 
-  currentStep, 
-  isFirstStep, 
-  isLastStep 
-} = useOnboarding();
+import { useOnboarding } from 'onboard-engine';
+
+const MyComponent = () => {
+  const { 
+    nextStep, 
+    prevStep, 
+    finish, 
+    state, 
+    currentStep, 
+    isFirstStep, 
+    isLastStep 
+  } = useOnboarding();
+
+  return (
+    // ...
+  );
+};
 ```
 
-## Persistence
+## Contributing
 
-The state is stored in a cookie named onboarding_state. This ensures that:
-- Refreshing the page keeps the user on the current step.
-- Returning to the site later resumes the onboarding from where it was left.
-- Navigating between different pages (if links are provided in the config) maintains the workflow.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Navigation Logic
+## License
 
-If a step has a link property, the engine will automatically check the current window.location.pathname. If the current path does not match the step's link, it will perform a navigation to ensure the user is on the correct page to see the highlighted element.
+ISC © [Forsrobin](https://github.com/Forsrobin)

@@ -12,7 +12,7 @@ export const OnboardingOverlay: React.FC = () => {
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  const calculateBestPosition = useCallback((rect: DOMRect) => {
+  const calculateBestPosition = useCallback((rect: { top: number; bottom: number; left: number; right: number; width: number; height: number }) => {
     const tooltipWidth = 300;
     const tooltipHeight = 200;
     const gap = 12;
@@ -52,17 +52,28 @@ export const OnboardingOverlay: React.FC = () => {
     const element = document.querySelector(`[data-onboarding-id="${currentStep.attribute}"]`) as HTMLElement;
     if (element) {
       const rect = element.getBoundingClientRect();
+      const padding = config.style?.padding || 0;
+      
+      const paddedRect = {
+        top: rect.top - padding,
+        bottom: rect.bottom + padding,
+        left: rect.left - padding,
+        right: rect.right + padding,
+        width: rect.width + (padding * 2),
+        height: rect.height + (padding * 2),
+      };
+
       setCoords({
-        top: rect.top + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-        height: rect.height,
+        top: paddedRect.top + window.scrollY,
+        left: paddedRect.left + window.scrollX,
+        width: paddedRect.width,
+        height: paddedRect.height,
       });
-      setPosition(calculateBestPosition(rect));
+      setPosition(calculateBestPosition(paddedRect));
     } else {
       setCoords(null);
     }
-  }, [currentStep, calculateBestPosition]);
+  }, [currentStep, calculateBestPosition, config.style]);
 
   useEffect(() => {
     updateCoords();
@@ -81,7 +92,8 @@ export const OnboardingOverlay: React.FC = () => {
 
   if (!currentStep || !coords) return null;
 
-  const transition = { type: 'spring', damping: 25, stiffness: 200 };
+  const transition = { type: 'spring' as const, damping: 25, stiffness: 200 };
+  const maskStyle = config.style?.background;
 
   const stopPropagation = (e: React.PointerEvent | React.MouseEvent) => {
     e.stopPropagation();
@@ -94,6 +106,7 @@ export const OnboardingOverlay: React.FC = () => {
         initial={false}
         animate={{ height: coords.top }}
         transition={transition}
+        style={maskStyle}
         className="onboard-overlay-mask top-0 left-0 w-full pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
@@ -104,6 +117,7 @@ export const OnboardingOverlay: React.FC = () => {
         initial={false}
         animate={{ top: coords.top + coords.height, height: `calc(100vh - ${coords.top + coords.height}px)` }}
         transition={transition}
+        style={maskStyle}
         className="onboard-overlay-mask left-0 w-full pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
@@ -114,6 +128,7 @@ export const OnboardingOverlay: React.FC = () => {
         initial={false}
         animate={{ top: coords.top, height: coords.height, width: coords.left }}
         transition={transition}
+        style={maskStyle}
         className="onboard-overlay-mask left-0 pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
@@ -129,6 +144,7 @@ export const OnboardingOverlay: React.FC = () => {
           width: `calc(100% - ${coords.left + coords.width}px)` 
         }}
         transition={transition}
+        style={maskStyle}
         className="onboard-overlay-mask pointer-events-auto"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
@@ -150,7 +166,7 @@ export const OnboardingOverlay: React.FC = () => {
         dragMomentum={false}
         transition={transition}
         className="onboard-tooltip pointer-events-auto"
-        style={{ zIndex: 1000000 }}
+        style={{ zIndex: 1000000, ...config.style?.container }}
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
@@ -173,20 +189,40 @@ export const OnboardingOverlay: React.FC = () => {
             onClick={(e) => { e.stopPropagation(); prevStep(); }}
             disabled={isFirstStep}
             className="onboard-button-ghost"
-            style={{ background: 'none', border: 'none', cursor: isFirstStep ? 'not-allowed' : 'pointer' }}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              cursor: isFirstStep ? 'not-allowed' : 'pointer',
+              ...config.style?.prev 
+            }}
           >
             <ChevronLeft size={16} />
             Prev
           </button>
           
-          <button
-            onClick={(e) => { e.stopPropagation(); nextStep(); }}
-            className="onboard-button-primary"
-            style={{ border: 'none', cursor: 'pointer' }}
-          >
-            {isLastStep ? 'Finish' : 'Next'}
-            {!isLastStep && <ChevronRight size={16} />}
-          </button>
+          {isLastStep ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); finish(); }}
+              className="onboard-button-primary"
+              style={{ border: 'none', cursor: 'pointer', ...config.style?.finish }}
+            >
+              Finish
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); nextStep(); }}
+              className="onboard-button-primary"
+              style={{ 
+                border: 'none', 
+                cursor: 'pointer',
+                ...(isFirstStep ? config.style?.start : {}),
+                ...(!isFirstStep ? config.style?.next : {})
+              }}
+            >
+              {isFirstStep && config.style?.start ? 'Start' : 'Next'}
+              {!(isFirstStep && config.style?.start) && <ChevronRight size={16} />}
+            </button>
+          )}
         </div>
       </motion.div>
     </div>

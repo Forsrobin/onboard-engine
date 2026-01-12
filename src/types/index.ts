@@ -1,3 +1,5 @@
+import type React from 'react';
+
 export interface OnboardingSubStep {
   title: string;
   description: string;
@@ -23,9 +25,20 @@ export interface OnboardingMetadata {
   draggable?: boolean;
 }
 
+export interface OnboardingStyle {
+  padding?: number;
+  background?: React.CSSProperties;
+  container?: React.CSSProperties;
+  next?: React.CSSProperties;
+  prev?: React.CSSProperties;
+  start?: React.CSSProperties;
+  finish?: React.CSSProperties;
+}
+
 export interface OnboardingConfig {
   metadata: OnboardingMetadata;
   steps: OnboardingStep[];
+  style?: OnboardingStyle;
 }
 
 export interface OnboardingState {
