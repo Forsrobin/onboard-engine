@@ -145,6 +145,35 @@ describe('OnboardingProvider', () => {
     expect(screen.getByText('Desc 2')).toBeDefined();
   });
 
+  it('hides onboarding when inOrder is false and URL matches no step', () => {
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/no-match-page' },
+      writable: true,
+    });
+
+    const noMatchConfig: OnboardingConfig = {
+      metadata: { name: 'No Match Test', inOrder: false },
+      steps: [
+        {
+          title: 'Step 1',
+          description: 'Desc 1',
+          attribute: 'step-1',
+          urlMatch: '/step-1',
+        },
+      ],
+    };
+
+    render(
+      <OnboardingProvider config={noMatchConfig}>
+        <div data-onboarding-id="step-1">Step 1 Element</div>
+      </OnboardingProvider>
+    );
+
+    // Should NOT find any overlay content because no step matches and inOrder is false
+    const overlay = document.querySelector('.onboard-tooltip');
+    expect(overlay).toBeNull();
+  });
+
   it('activates the matching step based on wildcard string when inOrder is false', () => {
     Object.defineProperty(window, 'location', {
       value: { pathname: '/user/123' },

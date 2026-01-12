@@ -196,17 +196,24 @@ import { useOnboarding } from 'onboard-engine';
 
 const MyComponent = () => {
   const { 
-    nextStep, 
-    prevStep, 
-    finish, 
-    state, 
-    currentStep, 
-    isFirstStep, 
-    isLastStep 
+    // Actions
+    nextStep,   // Go to the next step
+    prevStep,   // Go to the previous step
+    finish,     // End the onboarding flow
+    goToStep,   // Jump to a specific step (index, subStepIndex?)
+
+    // State
+    state,      // The full internal state object
+    currentStep,// The current OnboardingStep or OnboardingSubStep object
+    isFirstStep,// Boolean: true if on the first step
+    isLastStep, // Boolean: true if on the last step
+    
+    // Configuration
+    config      // The full configuration object
   } = useOnboarding();
 
   return (
-    // ...
+    <button onClick={nextStep}>Next</button>
   );
 };
 ```
