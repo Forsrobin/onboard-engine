@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="logo.png" alt="Onboard Engine Logo" width="200" />
-</p>
-
 # Onboard Engine
 
 **A modern, lightweight, and customizable onboarding library for React and Next.js applications.**
