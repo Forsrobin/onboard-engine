@@ -1,8 +1,33 @@
+.onboard-overlay-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999999;
+  pointer-events: none;
+}
+
 .onboard-overlay-mask {
   position: absolute;
   background-color: rgba(0, 0, 0, 0.7);
   pointer-events: auto;
   transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.onboard-mask-top {
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.onboard-mask-bottom {
+  left: 0;
+  width: 100%;
+}
+
+.onboard-mask-left {
+  left: 0;
 }
 
 .onboard-tooltip {
@@ -16,6 +41,50 @@
   border: 1px solid #f3f4f6;
   z-index: 10000;
   transition: top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.onboard-tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.onboard-tooltip-title {
+  margin: 0;
+  font-weight: bold;
+  color: #111827;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.onboard-close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboard-close-button:hover {
+  color: #6b7280;
+}
+
+.onboard-tooltip-description {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.onboard-tooltip-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .onboard-button-primary {

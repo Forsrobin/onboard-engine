@@ -208,11 +208,11 @@ export const OnboardingOverlay: React.FC = () => {
   );
 
   const overlayContent = (
-    <div className="fixed inset-0 z-[999999] pointer-events-none">
+    <div className="onboard-overlay-container">
       {/* Top Mask */}
       <div
         style={{ height: coords.top, ...maskStyle }}
-        className="onboard-overlay-mask top-0 left-0 w-full pointer-events-auto"
+        className="onboard-overlay-mask onboard-mask-top"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
@@ -220,7 +220,7 @@ export const OnboardingOverlay: React.FC = () => {
       {/* Bottom Mask */}
       <div
         style={{ top: coords.top + coords.height, height: `calc(100vh - ${coords.top + coords.height}px)`, ...maskStyle }}
-        className="onboard-overlay-mask left-0 w-full pointer-events-auto"
+        className="onboard-overlay-mask onboard-mask-bottom"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
@@ -228,7 +228,7 @@ export const OnboardingOverlay: React.FC = () => {
       {/* Left Mask */}
       <div
         style={{ top: coords.top, height: coords.height, width: coords.left, ...maskStyle }}
-        className="onboard-overlay-mask left-0 pointer-events-auto"
+        className="onboard-overlay-mask onboard-mask-left"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
@@ -242,7 +242,7 @@ export const OnboardingOverlay: React.FC = () => {
           width: `calc(100% - ${coords.left + coords.width}px)`, 
           ...maskStyle 
         }}
-        className="onboard-overlay-mask pointer-events-auto"
+        className="onboard-overlay-mask"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
@@ -251,7 +251,7 @@ export const OnboardingOverlay: React.FC = () => {
       {/* Tooltip */}
       <div
         ref={tooltipRef}
-        className="onboard-tooltip pointer-events-auto"
+        className="onboard-tooltip"
         onPointerDown={handlePointerDown}
         style={{ 
           zIndex: 1000000, 
@@ -265,20 +265,20 @@ export const OnboardingOverlay: React.FC = () => {
         onMouseDown={stopPropagation}
         onClick={stopPropagation}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-          <h3 style={{ margin: 0, fontWeight: 'bold', color: '#111827', fontSize: '18px', lineHeight: 1.2 }}>{currentStep.title}</h3>
+        <div className="onboard-tooltip-header">
+          <h3 className="onboard-tooltip-title">{currentStep.title}</h3>
           <button 
             onClick={(e) => { e.stopPropagation(); finish(); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af' }}
+            className="onboard-close-button"
           >
             <XIcon />
           </button>
         </div>
-        <p style={{ margin: 0, color: '#4b5563', fontSize: '14px', marginBottom: '24px', lineHeight: 1.5 }}>
+        <p className="onboard-tooltip-description">
           {currentStep.description}
         </p>
         
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="onboard-tooltip-footer">
           <button
             onClick={(e) => { e.stopPropagation(); prevStep(); }}
             disabled={isFirstStep}
