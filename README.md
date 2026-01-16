@@ -24,11 +24,15 @@ npm install onboard-engine
 yarn add onboard-engine
 # or
 pnpm add onboard-engine
+# or
+bun add onboard-engine
 ```
 
 ## Getting Started
 
 ### 1. Import Styles
+
+> **Important:** You must import the CSS for the overlay and tooltip to render correctly.
 
 Import the necessary CSS in your global stylesheet or root component (e.g., `_app.tsx` or `layout.tsx`).
 
@@ -46,8 +50,9 @@ import { OnboardingConfig } from 'onboard-engine';
 const onboardingConfig: OnboardingConfig = {
   metadata: {
     name: 'user-onboarding',
-    draggable: true, // Allow users to drag the tooltip
-    inOrder: true, // Default true. If false, steps can be activated out of order based on URL match.
+    draggable: true,
+    inOrder: true,
+    simulateClicksOnNavigate: true, // Re-activates parent clicks (like opening a modal) on page refresh
   },
   steps: [
     {
@@ -55,13 +60,15 @@ const onboardingConfig: OnboardingConfig = {
       description: 'Let us show you around the dashboard.',
       attribute: 'welcome-header',
       urlMatch: '/',
+      navigate: '/home',
     },
     {
       title: 'Create Project',
       description: 'Click here to start a new project.',
       attribute: 'create-btn',
-      navigate: '/dashboard', // Navigate to this page when clicking next
-      urlMatch: '/home', // This step is active when on /home
+      navigate: '/dashboard',
+      urlMatch: '/home',
+      click: true, // Clicks the button automatically when moving to the next step
       subSteps: [
         {
           title: 'Project Name',
@@ -73,7 +80,7 @@ const onboardingConfig: OnboardingConfig = {
   ],
   onOnboardingComplete: () => {
     console.log('Onboarding finished!');
-  }
+  },
 };
 ```
 
@@ -86,7 +93,10 @@ import { OnboardingProvider } from 'onboard-engine';
 
 export default function App({ children }) {
   return (
-    <OnboardingProvider config={onboardingConfig}>
+    <OnboardingProvider
+      config={onboardingConfig}
+      onNavigate={(url) => console.log('Navigating to', url)}
+    >
       {children}
     </OnboardingProvider>
   );
@@ -103,83 +113,37 @@ Add the `data-onboarding-id` attribute to the elements you want to highlight. Th
 <input data-onboarding-id="project-name-input" type="text" />
 ```
 
-## Advanced Configuration
-
-### Custom Styling
-
-You can customize the appearance of the overlay and tooltip through the `style` property in the config. This accepts standard React CSS properties for each element.
-
-```tsx
-const config: OnboardingConfig = {
-  // ...
-  style: {
-    // The mask overlaying the page
-    background: { backgroundColor: 'rgba(0, 0, 0, 0.85)' },
-    
-    // The main tooltip container
-    container: { 
-      borderRadius: '16px', 
-      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' 
-    },
-    
-    // Buttons
-    next: { backgroundColor: '#4F46E5', color: 'white' },
-    prev: { color: '#6B7280' },
-    finish: { backgroundColor: '#10B981' },
-    start: { backgroundColor: '#4F46E5' }, // Used for the "Next" button on the first step
-
-    // Layout
-    padding: 10, // Add 10px padding around the highlighted element
-  },
-  // ...
-};
-```
-
 ## API Reference
 
-### `OnboardingConfig`
+### `OnboardingProvider` Props
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `metadata` | `OnboardingMetadata` | General settings for the onboarding instance. |
-| `steps` | `OnboardingStep[]` | Array of steps defining the flow. |
-| `style` | `OnboardingStyle` | Optional. Visual styling configuration. |
-| `onOnboardingComplete` | `() => void` | Optional. Callback fired when onboarding finishes. |
+| Property     | Type                    | Description                                                                         |
+| :----------- | :---------------------- | :---------------------------------------------------------------------------------- |
+| `config`     | `OnboardingConfig`      | **Required**. The configuration object for the onboarding flow.                     |
+| `ssr`        | `boolean`               | Optional. Set to `true` if using Server-Side Rendering.                             |
+| `onNavigate` | `(url: string) => void` | Optional. Custom navigation handler (e.g. for `next/navigation` or `react-router`). |
 
 ### `OnboardingMetadata`
 
-| Property | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `name` | `string` | **Required** | Unique name for the onboarding flow. |
-| `nextRouter` | `boolean` | `false` | Enable if using Next.js router. |
-| `draggable` | `boolean` | `false` | Allow the tooltip to be dragged. |
-| `inOrder` | `boolean` | `true` | If `true`, strict step order is enforced. If `false`, matching `urlMatch` activates the step. |
+| Property                   | Type      | Default  | Description                                                                                   |
+| :------------------------- | :-------- | :------- | :-------------------------------------------------------------------------------------------- |
+| `name`                     | `string`  | Required | Unique name for the onboarding flow.                                                          |
+| `nextRouter`               | `boolean` | `false`  | Enable if using Next.js router.                                                               |
+| `draggable`                | `boolean` | `false`  | Allow the tooltip to be dragged.                                                              |
+| `inOrder`                  | `boolean` | `true`   | If `true`, strict step order is enforced. If `false`, matching `urlMatch` activates the step. |
+| `simulateClicksOnNavigate` | `boolean` | `false`  | If `true`, re-triggers the parent step's `click` when resuming in a sub-step after a refresh. |
 
 ### `OnboardingStep`
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `title` | `string` | Title displayed in the tooltip. |
-| `description` | `string` | Description text in the tooltip. |
-| `attribute` | `string` | The `data-onboarding-id` value to target. |
-| `urlMatch` | `string` \| `RegExp` | **Required**. Checks if current URL matches to active this step. Supports `*` wildcards in strings (e.g., `"/user/*"`). <br/>**Note:** `RegExp` objects cannot be passed from Server Components in Next.js. Use string wildcards or define config in a Client Component. |
-| `navigate` | `string` | URL to navigate to when this step is completed (next button clicked). |
-| `click` | `boolean` | If `true`, clicks the element when the step activates. |
-| `subSteps` | `OnboardingSubStep[]` | Nested steps for complex workflows. |
-
-### `OnboardingStyle`
-
-All properties (except `padding`) accept `React.CSSProperties` objects.
-
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `background` | `CSSProperties` | Styles for the overlay mask. |
-| `container` | `CSSProperties` | Styles for the tooltip box. |
-| `next` | `CSSProperties` | Styles for the "Next" button. |
-| `prev` | `CSSProperties` | Styles for the "Prev" button. |
-| `finish` | `CSSProperties` | Styles for the "Finish" button. |
-| `start` | `CSSProperties` | Styles for the "Start" button (Step 1 "Next" button). |
-| `padding` | `number` | Padding (in px) around the highlighted element. |
+| Property      | Type                  | Description                                                                                                                                                                                                                                                              |
+| :------------ | :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`       | `string`              | Title displayed in the tooltip.                                                                                                                                                                                                                                          |
+| `description` | `string`              | Description text in the tooltip.                                                                                                                                                                                                                                         |
+| `attribute`   | `string`              | The `data-onboarding-id` value to target.                                                                                                                                                                                                                                |
+| `urlMatch`    | `string` \| `RegExp`  | **Required**. Checks if current URL matches to active this step. Supports `*` wildcards in strings (e.g., `"/user/*"`). <br/>**Note:** `RegExp` objects cannot be passed from Server Components in Next.js. Use string wildcards or define config in a Client Component. |
+| `navigate`    | `string`              | URL to navigate to when this step is completed (next button clicked).                                                                                                                                                                                                    |
+| `click`       | `boolean`             | If `true`, clicks the element when the step activates.                                                                                                                                                                                                                   |
+| `subSteps`    | `OnboardingSubStep[]` | Nested steps for complex workflows.                                                                                                                                                                                                                                      |
 
 ## Hooks
 
@@ -191,26 +155,19 @@ Access the onboarding state and controls from any component within the provider.
 import { useOnboarding } from 'onboard-engine';
 
 const MyComponent = () => {
-  const { 
-    // Actions
-    nextStep,   // Go to the next step
-    prevStep,   // Go to the previous step
-    finish,     // End the onboarding flow
-    goToStep,   // Jump to a specific step (index, subStepIndex?)
-
-    // State
-    state,      // The full internal state object
-    currentStep,// The current OnboardingStep or OnboardingSubStep object
-    isFirstStep,// Boolean: true if on the first step
-    isLastStep, // Boolean: true if on the last step
-    
-    // Configuration
-    config      // The full configuration object
+  const {
+    nextStep,
+    prevStep,
+    finish,
+    goToStep,
+    state,
+    currentStep,
+    isFirstStep,
+    isLastStep,
+    config,
   } = useOnboarding();
 
-  return (
-    <button onClick={nextStep}>Next</button>
-  );
+  return <button onClick={nextStep}>Next</button>;
 };
 ```
 

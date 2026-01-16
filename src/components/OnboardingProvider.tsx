@@ -1,6 +1,14 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useEffectEvent,
+} from 'react';
 import Cookies from 'js-cookie';
 import { OnboardingConfig, OnboardingState, OnboardingStep, OnboardingSubStep } from '../types';
 import { OnboardingOverlay } from './OnboardingOverlay';
@@ -24,8 +32,9 @@ const COOKIE_NAME = 'onboarding_state';
 export const OnboardingProvider: React.FC<{
   config: OnboardingConfig;
   ssr?: boolean;
+  onNavigate?: (url: string) => void;
   children: React.ReactNode;
-}> = ({ config, ssr = false, children }) => {
+}> = ({ config, ssr = false, onNavigate, children }) => {
   const [isMounted, setIsMounted] = useState(!ssr);
   const [state, setState] = useState<OnboardingState>({
     currentStepIndex: 0,
@@ -33,126 +42,144 @@ export const OnboardingProvider: React.FC<{
     isActive: true,
   });
 
-  // Stabilize config to prevent infinite loops if the user passes a new object on every render
   const configRef = React.useRef(config);
   useEffect(() => {
     configRef.current = config;
   }, [config]);
 
-  const handleNavigation = useCallback((link?: string) => {
-    if (!link) return;
-    
-    if (configRef.current.metadata.nextRouter) {
-      window.location.href = link;
-    } else {
-      window.location.href = link;
-    }
-  }, []);
+  const onNavigateRef = React.useRef(onNavigate);
+  useEffect(() => {
+    onNavigateRef.current = onNavigate;
+  }, [onNavigate]);
+
+  const handleNavigation = useCallback(
+    (link?: string) => {
+      if (!link) return;
+
+      if (onNavigateRef.current) {
+        onNavigateRef.current(link);
+      } else if (config.metadata.nextRouter) {
+        window.location.href = link;
+      } else {
+        window.location.href = link;
+      }
+    },
+    [config.metadata.nextRouter],
+  );
 
   useEffect(() => {
     if (ssr) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsMounted(true);
     }
   }, [ssr]);
 
   const isMatch = (step: OnboardingStep, path: string) => {
     if (step.urlMatch instanceof RegExp) return step.urlMatch.test(path);
-    
+
     if (typeof step.urlMatch === 'string' && step.urlMatch.includes('*')) {
-      // Escape regex special characters but keep '*' as '.*'
-      const pattern = step.urlMatch
-        .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape regex chars
-        .replace(/\*/g, '.*');                 // Convert * to .*
+      const pattern = step.urlMatch.replace(/[.+?^${}()|[\\]/g, '\\$&').replace(/\*/g, '.*');
       return new RegExp(`^${pattern}$`).test(path);
     }
 
     return path === step.urlMatch;
   };
 
-  useEffect(() => {
+  const onRestoreState = useEffectEvent(() => {
     const currentConfig = configRef.current;
     const currentPath = window.location.pathname;
     let matchedStepIndex = -1;
-    
-    // Check if inOrder is explicitly false to find matching step from URL
+
     if ((currentConfig.metadata.inOrder as boolean | undefined) === false) {
-      matchedStepIndex = currentConfig.steps.findIndex(step => isMatch(step, currentPath));
+      matchedStepIndex = currentConfig.steps.findIndex((step) => isMatch(step, currentPath));
     }
 
     const savedState = Cookies.get(COOKIE_NAME);
     if (savedState) {
       try {
         const parsed: OnboardingState = JSON.parse(savedState);
-        
-        // If inOrder is false
+
         if ((currentConfig.metadata.inOrder as boolean | undefined) === false) {
           if (matchedStepIndex !== -1) {
-            // We found a matching step for this URL
             if (parsed.currentStepIndex === matchedStepIndex) {
-              // If it matches the saved step, restore state (keep substeps)
               setState(parsed);
             } else {
-              // Different step, switch to it
-              setState(prev => ({
-                ...prev,
+              setState({
                 currentStepIndex: matchedStepIndex,
                 currentSubStepIndex: null,
-                isActive: true
-              }));
+                isActive: true,
+              });
             }
           } else {
-            // inOrder is false, and NO step matches this URL.
-            // We should hide the onboarding, essentially "pausing" it until we return to a valid page.
-            setState(prev => ({ ...parsed, isActive: false }));
+            setState({ ...parsed, isActive: false });
           }
         } else {
-          // Standard behavior (inOrder: true OR no match found) - restore saved state
           setState(parsed);
 
-          // Only enforce navigation if inOrder is true (or default)
           if ((currentConfig.metadata.inOrder as boolean | undefined) !== false) {
             const step = currentConfig.steps[parsed.currentStepIndex];
             if (step && parsed.isActive) {
-              // Always enforce location based on the main step's urlMatch
-              if (typeof step.urlMatch === 'string' && window.location.pathname !== step.urlMatch) {
-                handleNavigation(step.urlMatch);
+              let targetUrl: string | undefined;
+
+              if (parsed.currentStepIndex > 0) {
+                const prevStep = currentConfig.steps[parsed.currentStepIndex - 1];
+                if (prevStep.navigate) {
+                  targetUrl = prevStep.navigate;
+                }
+              }
+
+              if (!targetUrl && typeof step.urlMatch === 'string') {
+                targetUrl = step.urlMatch;
+              }
+
+              if (targetUrl && window.location.pathname !== targetUrl) {
+                handleNavigation(targetUrl);
+              }
+
+              if (currentConfig.metadata.simulateClicksOnNavigate) {
+                if (parsed.currentSubStepIndex !== null && step.click) {
+                  setTimeout(() => {
+                    const element = document.querySelector(
+                      `[data-onboarding-id="${step.attribute}"]`,
+                    ) as HTMLElement;
+                    if (element) {
+                      element.click();
+                    }
+                  }, 500);
+                }
               }
             }
           }
         }
       } catch (e) {
         console.error('Failed to parse onboarding state from cookie', e);
-        // Fallback if cookie fails but we have a match
         if (matchedStepIndex !== -1) {
-          setState(prev => ({
-            ...prev,
+          setState({
             currentStepIndex: matchedStepIndex,
             currentSubStepIndex: null,
-            isActive: true
-          }));
+            isActive: true,
+          });
         }
       }
     } else if (matchedStepIndex !== -1) {
-      // No cookie, but we have a URL match
-      setState(prev => ({
-        ...prev,
+      setState({
         currentStepIndex: matchedStepIndex,
         currentSubStepIndex: null,
-        isActive: true
-      }));
+        isActive: true,
+      });
     } else if ((currentConfig.metadata.inOrder as boolean | undefined) === false) {
-      // No cookie, no match, and inOrder is false.
-      // We are on a page that doesn't trigger any onboarding step.
-      setState(prev => ({ ...prev, isActive: false }));
+      setState((prev) => ({ ...prev, isActive: false }));
     } else {
-      // No cookie, no match, inOrder is true (default).
-      // Enforce navigation for the default first step if needed.
       const step = currentConfig.steps[0];
       if (step && typeof step.urlMatch === 'string' && window.location.pathname !== step.urlMatch) {
-         handleNavigation(step.urlMatch);
+        handleNavigation(step.urlMatch);
       }
     }
-  }, [handleNavigation]); // Removed config.steps dependency
+  });
+
+  useEffect(() => {
+    onRestoreState();
+  }, []);
 
   useEffect(() => {
     if (isMounted) {
@@ -175,10 +202,10 @@ export const OnboardingProvider: React.FC<{
     const isLastMainStep = state.currentStepIndex === totalSteps - 1;
     const step = config.steps[state.currentStepIndex];
     const hasSubSteps = step?.subSteps && step.subSteps.length > 0;
-    
+
     if (isLastMainStep) {
       if (hasSubSteps) {
-        return state.currentSubStepIndex === (step.subSteps!.length - 1);
+        return state.currentSubStepIndex === step.subSteps!.length - 1;
       }
       return true;
     }
@@ -187,30 +214,34 @@ export const OnboardingProvider: React.FC<{
 
   const nextStep = useCallback(() => {
     const currentConfig = configRef.current;
-    const step = currentConfig.steps[state.currentStepIndex];
-    const currentActiveStep = state.currentSubStepIndex !== null && step.subSteps 
-      ? step.subSteps[state.currentSubStepIndex] 
-      : step;
+    const stepObj = currentConfig.steps[state.currentStepIndex];
+    const currentActiveStep =
+      state.currentSubStepIndex !== null && stepObj.subSteps
+        ? stepObj.subSteps[state.currentSubStepIndex]
+        : stepObj;
 
-    // Perform click if requested for the current step before moving to the next
     if (currentActiveStep.click) {
-      const element = document.querySelector(`[data-onboarding-id="${currentActiveStep.attribute}"]`) as HTMLElement;
+      const element = document.querySelector(
+        `[data-onboarding-id="${currentActiveStep.attribute}"]`,
+      ) as HTMLElement;
       if (element) {
         element.click();
       }
     }
-    
-    // Check for subSteps
-    if (step.subSteps && (state.currentSubStepIndex === null || state.currentSubStepIndex < step.subSteps.length - 1)) {
+
+    if (
+      stepObj.subSteps &&
+      (state.currentSubStepIndex === null ||
+        state.currentSubStepIndex < stepObj.subSteps.length - 1)
+    ) {
       const nextSubIndex = state.currentSubStepIndex === null ? 0 : state.currentSubStepIndex + 1;
-      const nextSubStep = step.subSteps[nextSubIndex];
-      setState(prev => ({ ...prev, currentSubStepIndex: nextSubIndex }));
-      
+      const nextSubStep = stepObj.subSteps[nextSubIndex];
+      setState((prev) => ({ ...prev, currentSubStepIndex: nextSubIndex }));
+
       if (nextSubStep.navigate) handleNavigation(nextSubStep.navigate);
       return;
     }
 
-    // Move to next main step
     if (state.currentStepIndex < currentConfig.steps.length - 1) {
       const nextIndex = state.currentStepIndex + 1;
       const nextStepObj = currentConfig.steps[nextIndex];
@@ -219,10 +250,10 @@ export const OnboardingProvider: React.FC<{
         currentSubStepIndex: null,
         isActive: true,
       });
-      
+
       if (nextStepObj.navigate) handleNavigation(nextStepObj.navigate);
     } else {
-      setState(prev => ({ ...prev, isActive: false }));
+      setState((prev) => ({ ...prev, isActive: false }));
       if (currentConfig.onOnboardingComplete) {
         currentConfig.onOnboardingComplete();
       }
@@ -231,15 +262,14 @@ export const OnboardingProvider: React.FC<{
 
   const prevStep = useCallback(() => {
     const currentConfig = configRef.current;
-    const step = currentConfig.steps[state.currentStepIndex];
 
     if (state.currentSubStepIndex !== null && state.currentSubStepIndex > 0) {
-      setState(prev => ({ ...prev, currentSubStepIndex: prev.currentSubStepIndex! - 1 }));
+      setState((prev) => ({ ...prev, currentSubStepIndex: prev.currentSubStepIndex! - 1 }));
       return;
     }
 
-    if (state.currentSubStepIndex === 0) {
-      setState(prev => ({ ...prev, currentSubStepIndex: null }));
+    if (state.currentStepIndex > 0 && state.currentSubStepIndex === 0) {
+      setState((prev) => ({ ...prev, currentSubStepIndex: null }));
       return;
     }
 
@@ -247,7 +277,7 @@ export const OnboardingProvider: React.FC<{
       const prevIndex = state.currentStepIndex - 1;
       const prevStepObj = currentConfig.steps[prevIndex];
       const prevSubStepIndex = prevStepObj.subSteps ? prevStepObj.subSteps.length - 1 : null;
-      
+
       setState({
         currentStepIndex: prevIndex,
         currentSubStepIndex: prevSubStepIndex,
@@ -257,7 +287,7 @@ export const OnboardingProvider: React.FC<{
   }, [state.currentStepIndex, state.currentSubStepIndex]);
 
   const finish = useCallback(() => {
-    setState(prev => ({ ...prev, isActive: false }));
+    setState((prev) => ({ ...prev, isActive: false }));
     if (configRef.current.onOnboardingComplete) {
       configRef.current.onOnboardingComplete();
     }

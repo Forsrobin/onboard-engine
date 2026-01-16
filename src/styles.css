@@ -40,7 +40,9 @@
   padding: 20px;
   border: 1px solid #f3f4f6;
   z-index: 10000;
-  transition: top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition:
+    top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+    left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .onboard-tooltip-header {

@@ -23,7 +23,7 @@ describe('OnboardingProvider', () => {
     render(
       <OnboardingProvider config={config}>
         <div data-testid="child">Child Content</div>
-      </OnboardingProvider>
+      </OnboardingProvider>,
     );
     expect(screen.getByTestId('child')).toBeDefined();
   });
@@ -40,27 +40,24 @@ describe('OnboardingProvider', () => {
       steps: [
         { title: 'Step 1', description: 'Desc 1', attribute: 'step-1', urlMatch: '/' },
         { title: 'Step 2', description: 'Desc 2', attribute: 'step-2', urlMatch: '/step-2' },
-      ]
+      ],
     };
 
     render(
       <OnboardingProvider config={customConfig}>
         <div data-onboarding-id="step-1">Step 1 Element</div>
-      </OnboardingProvider>
+      </OnboardingProvider>,
     );
 
-    // Verify mask elements exist and have style
     const masks = document.querySelectorAll('.onboard-overlay-mask');
     expect(masks.length).toBe(4);
-    masks.forEach(mask => {
+    masks.forEach((mask) => {
       expect(mask).toHaveStyle({ backgroundColor: 'rgba(255, 0, 0, 0.5)' });
     });
 
-    // Verify container style
     const tooltip = document.querySelector('.onboard-tooltip') as HTMLElement;
     expect(tooltip.style.border).toBe('2px solid blue');
 
-    // Verify start button style (since it's the first step)
     const startBtn = screen.getByText('Start').closest('button');
     expect(startBtn).toHaveStyle({ color: 'rgb(255, 0, 0)' });
   });
@@ -82,7 +79,7 @@ describe('OnboardingProvider', () => {
           description: 'Next step',
           attribute: 'next-step',
           urlMatch: '/next',
-        }
+        },
       ],
     };
 
@@ -91,13 +88,11 @@ describe('OnboardingProvider', () => {
         <button data-onboarding-id="click-me" onClick={handleClick}>
           Click Me
         </button>
-      </OnboardingProvider>
+      </OnboardingProvider>,
     );
 
-    // Should not click initially
     expect(handleClick).not.toHaveBeenCalled();
 
-    // Click the Next button (which says "Next" because there is a second step)
     const nextBtn = screen.getByText('Next');
     nextBtn.click();
 
@@ -105,7 +100,6 @@ describe('OnboardingProvider', () => {
   });
 
   it('activates the matching step based on URL when inOrder is false', () => {
-    // Mock window.location
     Object.defineProperty(window, 'location', {
       value: {
         pathname: '/special-page',
@@ -129,7 +123,7 @@ describe('OnboardingProvider', () => {
           title: 'Step 2',
           description: 'Desc 2',
           attribute: 'step-2',
-          urlMatch: /^\/special-/, // Matches /special-page
+          urlMatch: /^\/special-/,
         },
       ],
     };
@@ -137,10 +131,9 @@ describe('OnboardingProvider', () => {
     render(
       <OnboardingProvider config={regexConfig}>
         <div data-onboarding-id="step-2">Step 2 Element</div>
-      </OnboardingProvider>
+      </OnboardingProvider>,
     );
 
-    // Should activate Step 2 because URL matches regex and inOrder is false
     expect(screen.getByText('Step 2')).toBeDefined();
     expect(screen.getByText('Desc 2')).toBeDefined();
   });
@@ -166,10 +159,9 @@ describe('OnboardingProvider', () => {
     render(
       <OnboardingProvider config={noMatchConfig}>
         <div data-onboarding-id="step-1">Step 1 Element</div>
-      </OnboardingProvider>
+      </OnboardingProvider>,
     );
 
-    // Should NOT find any overlay content because no step matches and inOrder is false
     const overlay = document.querySelector('.onboard-tooltip');
     expect(overlay).toBeNull();
   });
@@ -195,7 +187,7 @@ describe('OnboardingProvider', () => {
     render(
       <OnboardingProvider config={wildcardConfig}>
         <div data-onboarding-id="user-profile">User Profile Element</div>
-      </OnboardingProvider>
+      </OnboardingProvider>,
     );
 
     expect(screen.getByText('User Profile')).toBeDefined();

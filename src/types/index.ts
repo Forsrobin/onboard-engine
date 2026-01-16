@@ -23,6 +23,7 @@ export interface OnboardingMetadata {
   nextRouter?: boolean;
   draggable?: boolean;
   inOrder?: boolean;
+  simulateClicksOnNavigate?: boolean;
 }
 
 export interface OnboardingStyle {
