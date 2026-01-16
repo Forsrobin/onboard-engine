@@ -48,4 +48,5 @@ export interface OnboardingState {
   currentSubStepIndex: number | null;
   isActive: boolean;
   completedSteps: number[];
+  subStepProgress: Record<number, number | null>;
 }

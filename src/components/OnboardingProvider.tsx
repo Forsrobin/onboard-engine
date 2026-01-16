@@ -41,6 +41,7 @@ const getInitialState = (): OnboardingState => {
             currentSubStepIndex: parsed.currentSubStepIndex ?? null,
             isActive: parsed.isActive ?? true,
             completedSteps: parsed.completedSteps ?? [],
+            subStepProgress: parsed.subStepProgress ?? {},
           };
         }
       } catch {
@@ -53,6 +54,7 @@ const getInitialState = (): OnboardingState => {
     currentSubStepIndex: null,
     isActive: true,
     completedSteps: [],
+    subStepProgress: {},
   };
 };
 
@@ -76,6 +78,13 @@ export const OnboardingProvider: React.FC<{
     typeof window !== 'undefined' ? window.location.pathname : '',
   );
   const wasInternalAction = useRef(false);
+
+  useEffect(() => {
+    if (currentPath !== lastPathForSimulation.current) {
+      lastPathForSimulation.current = currentPath;
+      lastSimulatedKey.current = ''; // Reset simulation tracking on path change
+    }
+  }, [currentPath]);
 
   useEffect(() => {
     configRef.current = config;
@@ -213,7 +222,7 @@ export const OnboardingProvider: React.FC<{
 
         if (matchedIndex !== -1 && matchedIndex !== prev.currentStepIndex) {
           nextState.currentStepIndex = matchedIndex;
-          nextState.currentSubStepIndex = null;
+          nextState.currentSubStepIndex = prev.subStepProgress[matchedIndex] ?? null;
           changed = true;
         }
       } else {
@@ -224,15 +233,14 @@ export const OnboardingProvider: React.FC<{
         if (firstUnfinishedIndex !== -1) {
           if (firstUnfinishedIndex !== prev.currentStepIndex) {
             nextState.currentStepIndex = firstUnfinishedIndex;
-            nextState.currentSubStepIndex = null;
+            nextState.currentSubStepIndex = prev.subStepProgress[firstUnfinishedIndex] ?? null;
             changed = true;
           }
 
           const step = currentConfig.steps[firstUnfinishedIndex];
           if (!isMatch(step, currentPath)) {
-            const targetUrl = step.urlMatch.includes('*') ? step.navigate : step.urlMatch;
-            if (targetUrl && currentPath !== targetUrl) {
-              handleNavigation(targetUrl);
+            if (step.navigate && currentPath !== step.navigate) {
+              handleNavigation(step.navigate);
             }
           }
         }
@@ -296,8 +304,9 @@ export const OnboardingProvider: React.FC<{
     const isUrlMatch = isMatch(step, currentPath);
 
     if (state.currentSubStepIndex !== null && step.subSteps) {
+      const subStep = step.subSteps[state.currentSubStepIndex];
       if (isUrlMatch || isTransitioning) {
-        return step.subSteps[state.currentSubStepIndex] || step;
+        return subStep || step;
       }
       return null;
     }
@@ -348,49 +357,77 @@ export const OnboardingProvider: React.FC<{
         if (element) element.click();
       }
 
+      let nextState: OnboardingState;
+      let navTo: string | undefined;
+
       if (
         stepObj.subSteps &&
         (currentSubStepIndex === null || currentSubStepIndex < stepObj.subSteps.length - 1)
       ) {
         const nextSubIndex = currentSubStepIndex === null ? 0 : currentSubStepIndex + 1;
         const nextSubStep = stepObj.subSteps[nextSubIndex];
-        
+
         setIsTransitioning(true);
         setTimeout(() => setIsTransitioning(false), 1000);
 
-        if (nextSubStep.navigate) handleNavigation(nextSubStep.navigate);
-        else if (stepObj.navigate && currentSubStepIndex === null)
-          handleNavigation(stepObj.navigate);
-        return { ...prev, currentSubStepIndex: nextSubIndex };
-      }
+        navTo = currentActiveStep.navigate || nextSubStep.navigate;
+        if (!navTo && currentSubStepIndex === null) navTo = stepObj.navigate;
 
-      const stepIndexToComplete = currentStepIndex;
-      if (currentStepIndex < currentConfig.steps.length - 1) {
-        const nextIndex = currentStepIndex + 1;
-        const nextStepObj = currentConfig.steps[nextIndex];
-        if (nextStepObj.navigate) handleNavigation(nextStepObj.navigate);
-        else if (nextStepObj.urlMatch && !nextStepObj.urlMatch.includes('*'))
-          handleNavigation(nextStepObj.urlMatch);
-
-        return {
+        nextState = {
           ...prev,
-          currentStepIndex: nextIndex,
-          currentSubStepIndex: null,
-          completedSteps: completedSteps.includes(stepIndexToComplete)
-            ? completedSteps
-            : [...completedSteps, stepIndexToComplete],
+          currentSubStepIndex: nextSubIndex,
+          subStepProgress: {
+            ...prev.subStepProgress,
+            [currentStepIndex]: nextSubIndex,
+          },
         };
+      } else {
+        const stepIndexToComplete = currentStepIndex;
+        if (currentStepIndex < currentConfig.steps.length - 1) {
+          const nextIndex = currentStepIndex + 1;
+          const nextStepObj = currentConfig.steps[nextIndex];
+          const targetSubStepIndex = prev.subStepProgress[nextIndex] ?? null;
+          const targetSubStep =
+            targetSubStepIndex !== null && nextStepObj.subSteps
+              ? nextStepObj.subSteps[targetSubStepIndex]
+              : null;
+
+          navTo = currentActiveStep.navigate || nextStepObj.navigate || targetSubStep?.navigate;
+
+          nextState = {
+            ...prev,
+            currentStepIndex: nextIndex,
+            currentSubStepIndex: targetSubStepIndex,
+            completedSteps: completedSteps.includes(stepIndexToComplete)
+              ? completedSteps
+              : [...completedSteps, stepIndexToComplete],
+            subStepProgress: {
+              ...prev.subStepProgress,
+              [stepIndexToComplete]: currentSubStepIndex,
+            },
+          };
+        } else {
+          if (currentConfig.onOnboardingComplete) currentConfig.onOnboardingComplete();
+
+          navTo = currentActiveStep.navigate || stepObj.navigate;
+
+          nextState = {
+            ...prev,
+            isActive: false,
+            completedSteps: completedSteps.includes(stepIndexToComplete)
+              ? completedSteps
+              : [...completedSteps, stepIndexToComplete],
+            subStepProgress: {
+              ...prev.subStepProgress,
+              [stepIndexToComplete]: currentSubStepIndex,
+            },
+          };
+        }
       }
 
-      if (currentConfig.onOnboardingComplete) currentConfig.onOnboardingComplete();
-      if (stepObj.navigate) handleNavigation(stepObj.navigate);
-      return {
-        ...prev,
-        isActive: false,
-        completedSteps: completedSteps.includes(stepIndexToComplete)
-          ? completedSteps
-          : [...completedSteps, stepIndexToComplete],
-      };
+      Cookies.set(COOKIE_NAME, JSON.stringify(nextState), { expires: 365 });
+      if (navTo) handleNavigation(navTo);
+      return nextState;
     });
   }, [handleNavigation]);
 
@@ -398,41 +435,103 @@ export const OnboardingProvider: React.FC<{
     const currentConfig = configRef.current;
     wasInternalAction.current = true;
     setState((prev) => {
+      let nextState: OnboardingState;
+      let navTo: string | undefined;
+
       if (prev.currentSubStepIndex !== null && prev.currentSubStepIndex > 0) {
-        return { ...prev, currentSubStepIndex: prev.currentSubStepIndex - 1 };
-      }
-      if (prev.currentStepIndex > 0 && prev.currentSubStepIndex === 0) {
-        return { ...prev, currentSubStepIndex: null };
-      }
-      if (prev.currentStepIndex > 0) {
+        const nextSubIndex = prev.currentSubStepIndex - 1;
+        const nextSubStep = currentConfig.steps[prev.currentStepIndex].subSteps![nextSubIndex];
+        navTo = nextSubStep.navigate;
+
+        nextState = {
+          ...prev,
+          currentSubStepIndex: nextSubIndex,
+          subStepProgress: {
+            ...prev.subStepProgress,
+            [prev.currentStepIndex]: nextSubIndex,
+          },
+        };
+      } else if (prev.currentStepIndex > 0 && prev.currentSubStepIndex === 0) {
+        const stepObj = currentConfig.steps[prev.currentStepIndex];
+        navTo = stepObj.navigate;
+
+        nextState = {
+          ...prev,
+          currentSubStepIndex: null,
+          subStepProgress: {
+            ...prev.subStepProgress,
+            [prev.currentStepIndex]: null,
+          },
+        };
+      } else if (prev.currentStepIndex > 0) {
         const prevIndex = prev.currentStepIndex - 1;
         const prevStepObj = currentConfig.steps[prevIndex];
-        const prevSubStepIndex = prevStepObj.subSteps ? prevStepObj.subSteps.length - 1 : null;
-        return {
+        const prevSubStepIndex =
+          prev.subStepProgress[prevIndex] ??
+          (prevStepObj.subSteps ? prevStepObj.subSteps.length - 1 : null);
+        const prevSubStep =
+          prevSubStepIndex !== null && prevStepObj.subSteps
+            ? prevStepObj.subSteps[prevSubStepIndex]
+            : null;
+
+        navTo = prevStepObj.navigate || prevSubStep?.navigate;
+
+        nextState = {
           ...prev,
           currentStepIndex: prevIndex,
           currentSubStepIndex: prevSubStepIndex,
           isActive: true,
+          subStepProgress: {
+            ...prev.subStepProgress,
+            [prevIndex]: prevSubStepIndex,
+          },
         };
+      } else {
+        return prev;
       }
-      return prev;
+
+      Cookies.set(COOKIE_NAME, JSON.stringify(nextState), { expires: 365 });
+      if (navTo) handleNavigation(navTo);
+      return nextState;
     });
-  }, []);
+  }, [handleNavigation]);
 
   const finish = useCallback(() => {
     setState((prev) => ({ ...prev, isActive: false }));
     if (configRef.current.onOnboardingComplete) configRef.current.onOnboardingComplete();
   }, []);
 
-  const goToStep = useCallback((stepIndex: number, subStepIndex: number | null = null) => {
-    wasInternalAction.current = true;
-    setState((prev) => ({
-      ...prev,
-      currentStepIndex: stepIndex,
-      currentSubStepIndex: subStepIndex,
-      isActive: true,
-    }));
-  }, []);
+  const goToStep = useCallback(
+    (stepIndex: number, subStepIndex: number | null = null) => {
+      const currentConfig = configRef.current;
+      wasInternalAction.current = true;
+      setState((prev) => {
+        const nextStepObj = currentConfig.steps[stepIndex];
+        const targetSubStep =
+          subStepIndex !== null && nextStepObj.subSteps
+            ? nextStepObj.subSteps[subStepIndex]
+            : null;
+
+        const navTo = nextStepObj.navigate || targetSubStep?.navigate;
+
+        const nextState = {
+          ...prev,
+          currentStepIndex: stepIndex,
+          currentSubStepIndex: subStepIndex,
+          isActive: true,
+          subStepProgress: {
+            ...prev.subStepProgress,
+            [stepIndex]: subStepIndex,
+          },
+        };
+
+        Cookies.set(COOKIE_NAME, JSON.stringify(nextState), { expires: 365 });
+        if (navTo) handleNavigation(navTo);
+        return nextState;
+      });
+    },
+    [handleNavigation],
+  );
 
   const value = {
     config,

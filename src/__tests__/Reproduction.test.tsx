@@ -217,4 +217,85 @@ describe('Onboarding Issue Reproduction', () => {
 
     vi.useRealTimers();
   });
+
+  it('should persist sub-step progress when switching between different steps', async () => {
+    vi.useFakeTimers();
+    const config: OnboardingConfig = {
+      metadata: { name: 'Persistence Test', inOrder: false },
+      steps: [
+        {
+          title: 'Step 1',
+          description: 'D1',
+          attribute: 's1',
+          urlMatch: '/page1',
+        },
+        {
+          title: 'Step 2',
+          description: 'D2',
+          attribute: 's2',
+          urlMatch: '/page2',
+          subSteps: [
+            { title: 'Sub 2.1', description: 'SD2.1', attribute: 'ss21' },
+            { title: 'Sub 2.2', description: 'SD2.2', attribute: 'ss22' },
+          ],
+        },
+      ],
+    };
+
+    // 1. Start on Page 2
+    vi.stubGlobal('location', { pathname: '/page2', href: 'http://localhost/page2' });
+    const { rerender } = render(
+      <OnboardingProvider config={config}>
+        <div data-onboarding-id="s1">S1</div>
+        <div data-onboarding-id="s2">S2</div>
+        <div data-onboarding-id="ss21">SS21</div>
+        <div data-onboarding-id="ss22">SS22</div>
+      </OnboardingProvider>
+    );
+
+    expect(screen.getByText('Step 2')).toBeInTheDocument();
+
+    // 2. Move to Sub 2.1
+    const nextBtn = screen.getByText('Next');
+    await act(async () => {
+      nextBtn.click();
+    });
+    expect(screen.getByText('Sub 2.1')).toBeInTheDocument();
+
+    // 3. Navigate to Page 1
+    vi.stubGlobal('location', { pathname: '/page1', href: 'http://localhost/page1' });
+    rerender(
+      <OnboardingProvider config={config}>
+        <div data-onboarding-id="s1">S1</div>
+        <div data-onboarding-id="s2">S2</div>
+        <div data-onboarding-id="ss21">SS21</div>
+        <div data-onboarding-id="ss22">SS22</div>
+      </OnboardingProvider>
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(screen.getByText('Step 1')).toBeInTheDocument();
+
+    // 4. Navigate back to Page 2
+    vi.stubGlobal('location', { pathname: '/page2', href: 'http://localhost/page2' });
+    rerender(
+      <OnboardingProvider config={config}>
+        <div data-onboarding-id="s1">S1</div>
+        <div data-onboarding-id="s2">S2</div>
+        <div data-onboarding-id="ss21">SS21</div>
+        <div data-onboarding-id="ss22">SS22</div>
+      </OnboardingProvider>
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    // SHOULD RESTORE Sub 2.1
+    expect(screen.getByText('Sub 2.1')).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
 });
