@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
-  useEffectEvent,
+  useRef,
 } from 'react';
 import Cookies from 'js-cookie';
 import { OnboardingConfig, OnboardingState, OnboardingStep, OnboardingSubStep } from '../types';
@@ -42,37 +42,21 @@ export const OnboardingProvider: React.FC<{
     isActive: true,
   });
 
-  const configRef = React.useRef(config);
-  useEffect(() => {
-    configRef.current = config;
-  }, [config]);
+  const configRef = useRef(config);
+  const onNavigateRef = useRef(onNavigate);
 
-  const onNavigateRef = React.useRef(onNavigate);
-  useEffect(() => {
-    onNavigateRef.current = onNavigate;
-  }, [onNavigate]);
+  configRef.current = config;
+  onNavigateRef.current = onNavigate;
 
-  const handleNavigation = useCallback(
-    (link?: string) => {
-      if (!link) return;
+  const handleNavigation = useCallback((link?: string) => {
+    if (!link) return;
 
-      if (onNavigateRef.current) {
-        onNavigateRef.current(link);
-      } else if (config.metadata.nextRouter) {
-        window.location.href = link;
-      } else {
-        window.location.href = link;
-      }
-    },
-    [config.metadata.nextRouter],
-  );
-
-  useEffect(() => {
-    if (ssr) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsMounted(true);
+    if (onNavigateRef.current) {
+      onNavigateRef.current(link);
+    } else {
+      window.location.href = link;
     }
-  }, [ssr]);
+  }, []);
 
   const isMatch = (step: OnboardingStep, path: string) => {
     if (step.urlMatch instanceof RegExp) return step.urlMatch.test(path);
@@ -85,7 +69,11 @@ export const OnboardingProvider: React.FC<{
     return path === step.urlMatch;
   };
 
-  const onRestoreState = useEffectEvent(() => {
+  useEffect(() => {
+    if (ssr) {
+      setIsMounted(true);
+    }
+
     const currentConfig = configRef.current;
     const currentPath = window.location.pathname;
     let matchedStepIndex = -1;
@@ -175,11 +163,7 @@ export const OnboardingProvider: React.FC<{
         handleNavigation(step.urlMatch);
       }
     }
-  });
-
-  useEffect(() => {
-    onRestoreState();
-  }, []);
+  }, [ssr, handleNavigation]);
 
   useEffect(() => {
     if (isMounted) {

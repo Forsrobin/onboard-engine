@@ -1,6 +1,6 @@
 {
   "name": "onboard-engine",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -28,13 +28,25 @@
     "prepublishOnly": "npm run build"
   },
   "private": false,
+  "description": "A lightweight, powerful onboarding and product tour engine for React applications.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Forsrobin/onboard-engine.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "react",
+    "onboarding",
+    "product-tour",
+    "walkthrough",
+    "guide",
+    "user-onboarding",
+    "ui",
+    "ux",
+    "onboard-engine",
+    "nextjs"
+  ],
+  "author": "Robin Fors",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Forsrobin/onboard-engine/issues"

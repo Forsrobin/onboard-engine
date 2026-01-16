@@ -4,6 +4,52 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useOnboarding } from './OnboardingProvider';
 
+const ChevronLeftIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
 export const OnboardingOverlay: React.FC = () => {
   const { config, currentStep, nextStep, prevStep, finish, isFirstStep, isLastStep } =
     useOnboarding();
@@ -19,9 +65,12 @@ export const OnboardingOverlay: React.FC = () => {
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Reset drag offset when step changes
+  const [prevStepRef, setPrevStepRef] = useState(currentStep);
+  if (currentStep !== prevStepRef) {
+    setPrevStepRef(currentStep);
     setDragOffset({ x: 0, y: 0 });
-  }, [currentStep]);
+  }
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!isDragging.current) return;
@@ -42,7 +91,6 @@ export const OnboardingOverlay: React.FC = () => {
     }
 
     window.removeEventListener('pointermove', handlePointerMove);
-    // eslint-disable-next-line react-hooks/immutability
     window.removeEventListener('pointerup', handlePointerUp);
   }, [config.metadata.draggable, handlePointerMove]);
 
@@ -61,13 +109,6 @@ export const OnboardingOverlay: React.FC = () => {
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
   };
-
-  useEffect(() => {
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [handlePointerMove, handlePointerUp]);
 
   const calculateBestPosition = useCallback(
     (rect: {
@@ -213,10 +254,12 @@ export const OnboardingOverlay: React.FC = () => {
     return () => {
       window.removeEventListener('resize', updateCoords);
       window.removeEventListener('scroll', updateCoords);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
       observer.disconnect();
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [updateCoords, currentStep?.attribute]);
+  }, [updateCoords, currentStep?.attribute, handlePointerMove, handlePointerUp]);
 
   if (!currentStep || !coords) return null;
 
@@ -228,52 +271,6 @@ export const OnboardingOverlay: React.FC = () => {
   const stopPropagation = (e: React.PointerEvent | React.MouseEvent) => {
     e.stopPropagation();
   };
-
-  const ChevronLeftIcon = () => (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M15 18l-6-6 6-6" />
-    </svg>
-  );
-
-  const ChevronRightIcon = () => (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M9 18l6-6-6-6" />
-    </svg>
-  );
-
-  const XIcon = () => (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
 
   const overlayContent = (
     <div className="onboard-overlay-container">
