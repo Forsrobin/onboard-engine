@@ -13,6 +13,7 @@ export interface OnboardingStep {
   description: string;
   attribute: string;
   urlMatch: string;
+  urlBase: string;
   navigate?: string;
   subSteps?: OnboardingSubStep[];
   click?: boolean;

@@ -1,6 +1,6 @@
 {
   "name": "onboard-engine",
-  "version": "1.4.3",
+  "version": "1.5.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

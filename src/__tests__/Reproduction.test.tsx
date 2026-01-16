@@ -29,6 +29,7 @@ describe('Onboarding Issue Reproduction', () => {
           description: 'Manage your user profile here.',
           attribute: 'user-profile-trigger',
           urlMatch: '/user',
+          urlBase: '/user',
           subSteps: [
             {
               title: 'Setup Your Profile',
@@ -114,6 +115,7 @@ describe('Onboarding Issue Reproduction', () => {
           attribute: 'trigger',
           click: true,
           urlMatch: '/page',
+          urlBase: '/page',
           subSteps: [
             { title: 'Sub 1', description: 'SD', attribute: 'sub-target' }
           ]
@@ -167,12 +169,14 @@ describe('Onboarding Issue Reproduction', () => {
           attribute: 'trigger',
           click: true,
           urlMatch: '/page',
+          urlBase: '/page',
         },
         {
           title: 'Step 2',
           description: 'Next one',
           attribute: 'target',
           urlMatch: '/page',
+          urlBase: '/page',
         },
       ],
     };
@@ -228,12 +232,14 @@ describe('Onboarding Issue Reproduction', () => {
           description: 'D1',
           attribute: 's1',
           urlMatch: '/page1',
+          urlBase: '/page1',
         },
         {
           title: 'Step 2',
           description: 'D2',
           attribute: 's2',
           urlMatch: '/page2',
+          urlBase: '/page2',
           subSteps: [
             { title: 'Sub 2.1', description: 'SD2.1', attribute: 'ss21' },
             { title: 'Sub 2.2', description: 'SD2.2', attribute: 'ss22' },

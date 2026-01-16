@@ -48,6 +48,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
           description: 'Welcome',
           attribute: 'step-1',
           urlMatch: '/',
+          urlBase: '/',
           navigate: '/home',
         },
         {
@@ -55,6 +56,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
           description: 'Dashboard',
           attribute: 'step-2',
           urlMatch: '/home',
+          urlBase: '/home',
         },
       ],
     };
@@ -92,12 +94,14 @@ describe('OnboardingProvider Navigation & Restoration', () => {
           description: 'D',
           attribute: 's1',
           urlMatch: '/',
+          urlBase: '/',
         },
         {
           title: 'Step 2',
           description: 'D2',
           attribute: 's2',
           urlMatch: '/dashboard',
+          urlBase: '/dashboard',
         },
       ],
     };
@@ -140,6 +144,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
           description: 'D1',
           attribute: 'step-1',
           urlMatch: '/',
+          urlBase: '/',
         },
         {
           title: 'Step 2',
@@ -147,6 +152,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
           attribute: 'parent-step',
           click: true,
           urlMatch: '/',
+          urlBase: '/',
           subSteps: [
             {
               title: 'SubStep 1',
@@ -201,6 +207,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
           description: 'D1',
           attribute: 's1',
           urlMatch: '/',
+          urlBase: '/',
           click: true,
           subSteps: [{ title: 'SS1', description: 'SS1', attribute: 'ss1' }],
         },
@@ -239,12 +246,14 @@ describe('OnboardingProvider Navigation & Restoration', () => {
           description: 'D1',
           attribute: 's1',
           urlMatch: '/',
+          urlBase: '/',
         },
         {
           title: 'Step 2',
           description: 'D2',
           attribute: 's2',
           urlMatch: '/next-page',
+          urlBase: '/next-page',
           navigate: '/next-page',
         },
       ],

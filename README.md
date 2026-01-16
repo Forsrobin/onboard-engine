@@ -60,14 +60,16 @@ const onboardingConfig: OnboardingConfig = {
       description: 'Let us show you around the dashboard.',
       attribute: 'welcome-header',
       urlMatch: '/',
+      urlBase: '/',
       navigate: '/home',
     },
     {
       title: 'Create Project',
       description: 'Click here to start a new project.',
       attribute: 'create-btn',
-      navigate: '/dashboard',
       urlMatch: '/home',
+      urlBase: '/home',
+      navigate: '/dashboard',
       click: true, // Clicks the button automatically when moving to the next step
       subSteps: [
         {
@@ -141,6 +143,7 @@ Add the `data-onboarding-id` attribute to the elements you want to highlight. Th
 | `description` | `string`              | Description text in the tooltip.                                                                                                                                                                                                                                         |
 | `attribute`   | `string`              | The `data-onboarding-id` value to target.                                                                                                                                                                                                                                |
 | `urlMatch`    | `string` \| `RegExp`  | **Required**. Checks if current URL matches to active this step. Supports `*` wildcards in strings (e.g., `"/user/*"`). <br/>**Note:** `RegExp` objects cannot be passed from Server Components in Next.js. Use string wildcards or define config in a Client Component. |
+| `urlBase`     | `string`              | **Required**. The base URL for this step. If `inOrder` is true, the user will be navigated here if they are on a non-matching page.                                                                                                                                      |
 | `navigate`    | `string`              | URL to navigate to when this step is completed (next button clicked).                                                                                                                                                                                                    |
 | `click`       | `boolean`             | If `true`, clicks the element when the step activates.                                                                                                                                                                                                                   |
 | `subSteps`    | `OnboardingSubStep[]` | Nested steps for complex workflows.                                                                                                                                                                                                                                      |

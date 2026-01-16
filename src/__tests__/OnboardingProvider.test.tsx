@@ -15,6 +15,7 @@ const config: OnboardingConfig = {
       description: 'Desc 1',
       attribute: 'step-1',
       urlMatch: '/',
+      urlBase: '/',
     },
   ],
 };
@@ -43,8 +44,8 @@ describe('OnboardingProvider', () => {
         padding: 10,
       },
       steps: [
-        { title: 'Step 1', description: 'Desc 1', attribute: 'step-1', urlMatch: '/' },
-        { title: 'Step 2', description: 'Desc 2', attribute: 'step-2', urlMatch: '/step-2' },
+        { title: 'Step 1', description: 'Desc 1', attribute: 'step-1', urlMatch: '/', urlBase: '/' },
+        { title: 'Step 2', description: 'Desc 2', attribute: 'step-2', urlMatch: '/step-2', urlBase: '/step-2' },
       ],
     };
 
@@ -78,12 +79,14 @@ describe('OnboardingProvider', () => {
           attribute: 'click-me',
           click: true,
           urlMatch: '/',
+          urlBase: '/',
         },
         {
           title: 'Next Step',
           description: 'Next step',
           attribute: 'next-step',
           urlMatch: '/next',
+          urlBase: '/next',
         },
       ],
     };
@@ -117,6 +120,7 @@ describe('OnboardingProvider', () => {
           description: 'Desc 1',
           attribute: 'step-1',
           urlMatch: '/step-1',
+          urlBase: '/step-1',
         },
       ],
     };
@@ -144,6 +148,7 @@ describe('OnboardingProvider', () => {
           description: 'User details',
           attribute: 'user-profile',
           urlMatch: '/user/*',
+          urlBase: '/user/profile',
         },
       ],
     };

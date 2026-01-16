@@ -58,6 +58,7 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
           description: 'Initial Page',
           attribute: 'step-1',
           urlMatch: '/',
+          urlBase: '/',
           navigate: '/dashboard',
         },
         {
@@ -65,6 +66,7 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
           description: 'Dashboard Main',
           attribute: 'step-2',
           urlMatch: '/dashboard',
+          urlBase: '/dashboard',
           click: true,
           subSteps: [
             {
@@ -161,9 +163,9 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
         finish: { backgroundColor: 'rgb(255, 215, 0)' },
       },
       steps: [
-        { title: 'S1', description: 'D1', attribute: 'a1', urlMatch: '/' },
-        { title: 'S2', description: 'D2', attribute: 'a2', urlMatch: '/' },
-        { title: 'S3', description: 'D3', attribute: 'a3', urlMatch: '/' },
+        { title: 'S1', description: 'D1', attribute: 'a1', urlMatch: '/', urlBase: '/' },
+        { title: 'S2', description: 'D2', attribute: 'a2', urlMatch: '/', urlBase: '/' },
+        { title: 'S3', description: 'D3', attribute: 'a3', urlMatch: '/', urlBase: '/' },
       ],
     };
 
@@ -217,12 +219,13 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
     const config: OnboardingConfig = {
       metadata: { name: 'GoToStep Test' },
       steps: [
-        { title: 'S1', description: 'D1', attribute: 'a1', urlMatch: '/' },
+        { title: 'S1', description: 'D1', attribute: 'a1', urlMatch: '/', urlBase: '/' },
         {
           title: 'S2',
           description: 'D2',
           attribute: 'a2',
           urlMatch: '/',
+          urlBase: '/',
           subSteps: [
             { title: 'SS2.1', description: 'D2.1', attribute: 'ss21' },
             { title: 'SS2.2', description: 'D2.2', attribute: 'ss22' },

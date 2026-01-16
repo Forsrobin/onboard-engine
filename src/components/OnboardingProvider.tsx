@@ -239,8 +239,8 @@ export const OnboardingProvider: React.FC<{
 
           const step = currentConfig.steps[firstUnfinishedIndex];
           if (!isMatch(step, currentPath)) {
-            if (step.navigate && currentPath !== step.navigate) {
-              handleNavigation(step.navigate);
+            if (step.urlBase && currentPath !== step.urlBase) {
+              handleNavigation(step.urlBase);
             }
           }
         }

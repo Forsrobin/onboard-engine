@@ -53,12 +53,14 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           description: 'Description 1',
           attribute: 'step-1',
           urlMatch: '/page1',
+          urlBase: '/page1',
         },
         {
           title: 'Step 2',
           description: 'Description 2',
           attribute: 'step-2',
           urlMatch: '/page2',
+          urlBase: '/page2',
         },
       ],
     };
@@ -134,6 +136,7 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           description: 'D1',
           attribute: 's1',
           urlMatch: '/page1',
+          urlBase: '/page1',
           navigate: '/page1',
         },
         {
@@ -141,6 +144,7 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           description: 'D2',
           attribute: 's2',
           urlMatch: '/page2',
+          urlBase: '/page2',
           navigate: '/page2',
         },
       ],
@@ -209,12 +213,14 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           description: 'D1',
           attribute: 's1',
           urlMatch: '/page1',
+          urlBase: '/page1',
         },
         {
           title: 'Page 2 Step',
           description: 'D2',
           attribute: 's2',
           urlMatch: '/page2',
+          urlBase: '/page2',
         },
       ],
     };
@@ -276,6 +282,7 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           attribute: 'main-trigger',
           click: true,
           urlMatch: '/page',
+          urlBase: '/page',
           subSteps: [
             { title: 'Sub 1', description: 'SD1', attribute: 'sub-1-trigger', click: true },
             { title: 'Sub 2', description: 'SD2', attribute: 'sub-2-target' },
@@ -343,12 +350,14 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           attribute: 'trigger-1',
           click: true,
           urlMatch: '/page',
+          urlBase: '/page',
         },
         {
           title: 'Step 2',
           description: 'D2',
           attribute: 'target-2',
           urlMatch: '/page',
+          urlBase: '/page',
         },
       ],
     };
@@ -397,6 +406,7 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           description: 'D',
           attribute: 'user-trigger',
           urlMatch: '/user',
+          urlBase: '/user',
           subSteps: [
             { title: 'Sub 1', description: 'SD1', attribute: 'sub-1', click: true },
             { title: 'Sub 2', description: 'SD2', attribute: 'sub-2' },
@@ -497,6 +507,7 @@ describe('Onboarding Engine - InOrder: False Persistence', () => {
           description: 'Description 1',
           attribute: 'step-1',
           urlMatch: '/page1',
+          urlBase: '/page1',
           subSteps: [
             { title: 'Sub 1.1', description: 'D1.1', attribute: 'ss11' },
             { title: 'Sub 1.2', description: 'D1.2', attribute: 'ss12' },
