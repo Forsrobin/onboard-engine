@@ -45,8 +45,10 @@ export const OnboardingProvider: React.FC<{
   const configRef = useRef(config);
   const onNavigateRef = useRef(onNavigate);
 
-  configRef.current = config;
-  onNavigateRef.current = onNavigate;
+  useEffect(() => {
+    configRef.current = config;
+    onNavigateRef.current = onNavigate;
+  }, [config, onNavigate]);
 
   const handleNavigation = useCallback((link?: string) => {
     if (!link) return;
@@ -71,6 +73,7 @@ export const OnboardingProvider: React.FC<{
 
   useEffect(() => {
     if (ssr) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsMounted(true);
     }
 

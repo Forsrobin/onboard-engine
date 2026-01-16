@@ -72,6 +72,8 @@ export const OnboardingOverlay: React.FC = () => {
     setDragOffset({ x: 0, y: 0 });
   }
 
+  const handlePointerUpRef = useRef<() => void>(() => {});
+
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!isDragging.current) return;
 
@@ -91,8 +93,12 @@ export const OnboardingOverlay: React.FC = () => {
     }
 
     window.removeEventListener('pointermove', handlePointerMove);
-    window.removeEventListener('pointerup', handlePointerUp);
+    window.removeEventListener('pointerup', handlePointerUpRef.current);
   }, [config.metadata.draggable, handlePointerMove]);
+
+  useEffect(() => {
+    handlePointerUpRef.current = handlePointerUp;
+  }, [handlePointerUp]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!config.metadata.draggable) return;
@@ -231,6 +237,7 @@ export const OnboardingOverlay: React.FC = () => {
   }, [currentStep, calculateBestPosition, config.style]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateCoords();
     window.addEventListener('resize', updateCoords);
     window.addEventListener('scroll', updateCoords);
