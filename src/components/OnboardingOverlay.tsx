@@ -65,12 +65,10 @@ export const OnboardingOverlay: React.FC = () => {
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Reset drag offset when step changes
-  const [prevStepRef, setPrevStepRef] = useState(currentStep);
-  if (currentStep !== prevStepRef) {
-    setPrevStepRef(currentStep);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDragOffset({ x: 0, y: 0 });
-  }
+  }, [currentStep]);
 
   const handlePointerUpRef = useRef<() => void>(() => {});
 
@@ -374,7 +372,7 @@ export const OnboardingOverlay: React.FC = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                finish();
+                nextStep();
               }}
               className="onboard-button-primary"
               style={{ border: 'none', cursor: 'pointer', ...config.style?.finish }}

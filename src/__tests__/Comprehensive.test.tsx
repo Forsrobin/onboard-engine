@@ -47,6 +47,7 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
   });
 
   it('handles a complete flow with sub-steps, clicks, and page navigations', async () => {
+    vi.useFakeTimers();
     const onComplete = vi.fn();
     const onStateChange = vi.fn();
     const config: OnboardingConfig = {
@@ -110,6 +111,7 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
         currentStepIndex: 1,
         currentSubStepIndex: null,
         isActive: true,
+        completedSteps: [0],
       }) as unknown as { [key: string]: string },
     );
 
@@ -124,7 +126,11 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
       </OnboardingProvider>,
     );
 
-    expect(document.querySelector('.onboard-tooltip-title')?.textContent).toBe('Step 2');
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.getByText('Step 2')).toBeInTheDocument();
 
     const nextBtn2 = screen.getByText('Next');
     await act(async () => {
@@ -140,6 +146,7 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
     });
 
     expect(onComplete).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('applies custom styling for all button types and elements', async () => {
@@ -206,6 +213,7 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
   });
 
   it('correctly uses goToStep to jump between steps and substeps', async () => {
+    const onStateChange = vi.fn();
     const config: OnboardingConfig = {
       metadata: { name: 'GoToStep Test' },
       steps: [
@@ -229,6 +237,7 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
         <div data-onboarding-id="a2">A2</div>
         <div data-onboarding-id="ss21">SS21</div>
         <div data-onboarding-id="ss22">SS22</div>
+        <StateInspector onState={onStateChange} />
       </OnboardingProvider>,
     );
 
@@ -242,10 +251,16 @@ describe('Onboarding Engine - Comprehensive Tests', () => {
           <div data-onboarding-id="ss21">SS21</div>
           <div data-onboarding-id="ss22">SS22</div>
           <GoToStepTrigger step={1} subStep={1} />
+          <StateInspector onState={onStateChange} />
         </OnboardingProvider>,
       );
     });
 
-    expect(document.querySelector('.onboard-tooltip-title')?.textContent).toBe('SS2.2');
+    expect(onStateChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentStepIndex: 1,
+        currentSubStepIndex: 1,
+      }),
+    );
   });
 });

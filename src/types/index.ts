@@ -12,7 +12,7 @@ export interface OnboardingStep {
   title: string;
   description: string;
   attribute: string;
-  urlMatch: string | RegExp;
+  urlMatch: string;
   navigate?: string;
   subSteps?: OnboardingSubStep[];
   click?: boolean;
@@ -47,4 +47,5 @@ export interface OnboardingState {
   currentStepIndex: number;
   currentSubStepIndex: number | null;
   isActive: boolean;
+  completedSteps: number[];
 }

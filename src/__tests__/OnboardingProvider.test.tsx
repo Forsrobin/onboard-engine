@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { OnboardingProvider } from '../components/OnboardingProvider';
 import { OnboardingConfig } from '../types';
+import Cookies from 'js-cookie';
 
 const config: OnboardingConfig = {
   metadata: {
@@ -19,6 +20,10 @@ const config: OnboardingConfig = {
 };
 
 describe('OnboardingProvider', () => {
+  beforeEach(() => {
+    Cookies.remove('onboarding_state');
+  });
+
   it('renders children correctly', () => {
     render(
       <OnboardingProvider config={config}>
@@ -99,49 +104,9 @@ describe('OnboardingProvider', () => {
     expect(handleClick).toHaveBeenCalled();
   });
 
-  it('activates the matching step based on URL when inOrder is false', () => {
-    Object.defineProperty(window, 'location', {
-      value: {
-        pathname: '/special-page',
-      },
-      writable: true,
-    });
-
-    const regexConfig: OnboardingConfig = {
-      metadata: {
-        name: 'Regex Test',
-        inOrder: false,
-      },
-      steps: [
-        {
-          title: 'Step 1',
-          description: 'Desc 1',
-          attribute: 'step-1',
-          urlMatch: '/other-page',
-        },
-        {
-          title: 'Step 2',
-          description: 'Desc 2',
-          attribute: 'step-2',
-          urlMatch: /^\/special-/,
-        },
-      ],
-    };
-
-    render(
-      <OnboardingProvider config={regexConfig}>
-        <div data-onboarding-id="step-2">Step 2 Element</div>
-      </OnboardingProvider>,
-    );
-
-    expect(screen.getByText('Step 2')).toBeDefined();
-    expect(screen.getByText('Desc 2')).toBeDefined();
-  });
-
   it('hides onboarding when inOrder is false and URL matches no step', () => {
-    Object.defineProperty(window, 'location', {
-      value: { pathname: '/no-match-page' },
-      writable: true,
+    vi.stubGlobal('location', {
+      pathname: '/no-match-page',
     });
 
     const noMatchConfig: OnboardingConfig = {
@@ -166,10 +131,9 @@ describe('OnboardingProvider', () => {
     expect(overlay).toBeNull();
   });
 
-  it('activates the matching step based on wildcard string when inOrder is false', () => {
-    Object.defineProperty(window, 'location', {
-      value: { pathname: '/user/123' },
-      writable: true,
+  it('activates the matching step based on wildcard string when inOrder is false', async () => {
+    vi.stubGlobal('location', {
+      pathname: '/user/123',
     });
 
     const wildcardConfig: OnboardingConfig = {
@@ -190,6 +154,6 @@ describe('OnboardingProvider', () => {
       </OnboardingProvider>,
     );
 
-    expect(screen.getByText('User Profile')).toBeDefined();
+    expect(await screen.findByText('User Profile')).toBeInTheDocument();
   });
 });

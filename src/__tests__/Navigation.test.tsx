@@ -36,6 +36,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
   });
 
   it("navigates to the previous step's navigate prop when resuming at index > 0", () => {
+    vi.useFakeTimers();
     const config: OnboardingConfig = {
       metadata: {
         name: 'Navigation Test',
@@ -63,6 +64,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
         currentStepIndex: 1,
         currentSubStepIndex: null,
         isActive: true,
+        completedSteps: [0],
       }) as unknown as { [key: string]: string },
     );
 
@@ -72,10 +74,16 @@ describe('OnboardingProvider Navigation & Restoration', () => {
       </OnboardingProvider>,
     );
 
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
     expect(window.location.href).toBe('/home');
+    vi.useRealTimers();
   });
 
   it('navigates to current step urlMatch if previous step has no navigate prop', () => {
+    vi.useFakeTimers();
     const config: OnboardingConfig = {
       metadata: { name: 'Nav Test 2', inOrder: true },
       steps: [
@@ -99,6 +107,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
         currentStepIndex: 1,
         currentSubStepIndex: null,
         isActive: true,
+        completedSteps: [0],
       }) as unknown as { [key: string]: string },
     );
 
@@ -108,7 +117,12 @@ describe('OnboardingProvider Navigation & Restoration', () => {
       </OnboardingProvider>,
     );
 
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
     expect(window.location.href).toBe('/dashboard');
+    vi.useRealTimers();
   });
 
   it('simulates click on parent step attribute when resuming in a sub-step with simulateClicksOnNavigate: true', async () => {
@@ -149,6 +163,7 @@ describe('OnboardingProvider Navigation & Restoration', () => {
         currentStepIndex: 1,
         currentSubStepIndex: 0,
         isActive: true,
+        completedSteps: [0],
       }) as unknown as { [key: string]: string },
     );
 
@@ -164,10 +179,12 @@ describe('OnboardingProvider Navigation & Restoration', () => {
     expect(handleClick).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(200); // Advance for path interval
+      vi.advanceTimersByTime(500); // Advance for click timeout
     });
 
     expect(handleClick).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('does NOT simulate click if simulateClicksOnNavigate is false (default)', async () => {
@@ -211,5 +228,39 @@ describe('OnboardingProvider Navigation & Restoration', () => {
     });
 
     expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it('navigates to the next step URL when clicking Next if navigate is present on the next step', async () => {
+    const config: OnboardingConfig = {
+      metadata: { name: 'Next Nav Test', inOrder: true },
+      steps: [
+        {
+          title: 'Step 1',
+          description: 'D1',
+          attribute: 's1',
+          urlMatch: '/',
+        },
+        {
+          title: 'Step 2',
+          description: 'D2',
+          attribute: 's2',
+          urlMatch: '/next-page',
+          navigate: '/next-page',
+        },
+      ],
+    };
+
+    const { getByText } = render(
+      <OnboardingProvider config={config}>
+        <div data-onboarding-id="s1">S1</div>
+      </OnboardingProvider>,
+    );
+
+    const nextBtn = getByText('Next');
+    await act(async () => {
+      nextBtn.click();
+    });
+
+    expect(window.location.href).toBe('/next-page');
   });
 });
